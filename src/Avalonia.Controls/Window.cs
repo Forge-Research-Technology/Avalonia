@@ -499,6 +499,11 @@ namespace Avalonia.Controls
                 owner.RemoveChild(this);
             }
 
+            if (_showingAsDialog)
+            {
+                SetEnabledOnOwnerAndSiblings(true);
+            }
+
             Owner = null;
 
             PlatformImpl?.Dispose();
@@ -789,6 +794,8 @@ namespace Avalonia.Controls
                 Owner = owner;
                 owner.AddChild(this, true);
 
+                SetEnabledOnOwnerAndSiblings(false);
+
                 SetWindowStartupLocation(owner);
 
                 PlatformImpl?.Show(ShowActivated, true);
@@ -810,7 +817,34 @@ namespace Avalonia.Controls
             }
         }
 
+        private void SetEnabledOnOwnerAndSiblings(bool enabled)
+        {
+            if (Owner is not Window window)
+                return;
 
+            window.PlatformImpl?.SetEnabled(enabled);
+
+            foreach (var (child, _) in window._children)
+            {
+                if (child == this)
+                    continue;
+
+                child.SetEnabledOnChildren(enabled);
+            }
+
+            if(!window._showingAsDialog)
+                window.SetEnabledOnOwnerAndSiblings(enabled);
+        }
+
+        private void SetEnabledOnChildren(bool enabled)
+        {
+            PlatformImpl?.SetEnabled(enabled);
+
+            foreach (var (child, _) in _children)
+            {
+                child.SetEnabledOnChildren(enabled);
+            }
+        }
 
         private void AddChild(Window window, bool isDialog)
         {
