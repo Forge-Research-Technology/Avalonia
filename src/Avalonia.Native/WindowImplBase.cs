@@ -222,18 +222,17 @@ namespace Avalonia.Native
                 _parent.PositionChanged?.Invoke(position.ToAvaloniaPixelPoint());
             }
 
-            int IAvnWindowBaseEvents.RawMouseEvent(AvnRawMouseEventType type, uint timeStamp, AvnInputModifiers modifiers, AvnPoint point, AvnVector delta)
+            void IAvnWindowBaseEvents.RawMouseEvent(AvnRawMouseEventType type, ulong timeStamp, AvnInputModifiers modifiers, AvnPoint point, AvnVector delta)
             {
-                bool eventHandled = _parent.RawMouseEvent(type, timeStamp, modifiers, point, delta);
-                return eventHandled.AsComBool();
+                _parent.RawMouseEvent(type, timeStamp, modifiers, point, delta);
             }
 
-            int IAvnWindowBaseEvents.RawKeyEvent(AvnRawKeyEventType type, uint timeStamp, AvnInputModifiers modifiers, uint key)
+            int IAvnWindowBaseEvents.RawKeyEvent(AvnRawKeyEventType type, ulong timeStamp, AvnInputModifiers modifiers, uint key)
             {
                 return _parent.RawKeyEvent(type, timeStamp, modifiers, key).AsComBool();
             }
 
-            int IAvnWindowBaseEvents.RawTextInputEvent(uint timeStamp, string text)
+            int IAvnWindowBaseEvents.RawTextInputEvent(ulong timeStamp, string text)
             {
                 return _parent.RawTextInputEvent(timeStamp, text).AsComBool();
             }
@@ -314,7 +313,7 @@ namespace Avalonia.Native
             _native?.Activate();
         }
 
-        public bool RawTextInputEvent(uint timeStamp, string text)
+        public bool RawTextInputEvent(ulong timeStamp, string text)
         {
             if (_inputRoot is null) 
                 return false;
@@ -328,7 +327,7 @@ namespace Avalonia.Native
             return args.Handled;
         }
 
-        public bool RawKeyEvent(AvnRawKeyEventType type, uint timeStamp, AvnInputModifiers modifiers, uint key)
+        public bool RawKeyEvent(AvnRawKeyEventType type, ulong timeStamp, AvnInputModifiers modifiers, uint key)
         {
             if (_inputRoot is null) 
                 return false;
@@ -347,12 +346,10 @@ namespace Avalonia.Native
             return false;
         }
 
-        public bool RawMouseEvent(AvnRawMouseEventType type, uint timeStamp, AvnInputModifiers modifiers, AvnPoint point, AvnVector delta)
+        public void RawMouseEvent(AvnRawMouseEventType type, ulong timeStamp, AvnInputModifiers modifiers, AvnPoint point, AvnVector delta)
         {
-            bool eventHandled = false; // suppose event will go through (transparent area)
-
             if (_inputRoot is null) 
-                return false;
+                return;
             
             Dispatcher.UIThread.RunJobs(DispatcherPriority.Input + 1);
 
@@ -386,15 +383,9 @@ namespace Avalonia.Native
                     {
                         Input?.Invoke(e);
                     }
-                    if (e.InputHitTestResult != null)
-                    {
-                        eventHandled = true;
-                    }
 
                     break;
             }
-
-            return eventHandled;
         }
 
         public void Resize(Size clientSize, WindowResizeReason reason)
