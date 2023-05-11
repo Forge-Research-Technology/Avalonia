@@ -810,26 +810,11 @@ namespace Avalonia.Controls
             }
         }
 
-        private void UpdateEnabled()
-        {
-            bool isEnabled = true;
 
-            foreach (var (_, isDialog) in _children)
-            {
-                if (isDialog)
-                {
-                    isEnabled = false;
-                    break;
-                }
-            }
-
-            PlatformImpl?.SetEnabled(isEnabled);
-        }
 
         private void AddChild(Window window, bool isDialog)
         {
             _children.Add((window, isDialog));
-            UpdateEnabled();
         }
 
         private void RemoveChild(Window window)
@@ -843,8 +828,6 @@ namespace Avalonia.Controls
                     _children.RemoveAt(i);
                 }
             }
-
-            UpdateEnabled();
         }
 
         private void OnGotInputWhenDisabled()
