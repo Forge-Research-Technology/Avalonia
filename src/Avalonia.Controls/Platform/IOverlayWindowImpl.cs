@@ -4,8 +4,8 @@ namespace Avalonia.Platform
 {
     public interface IOverlayWindowImpl
     {
-        Action<string> FirstResponderChanged { get; set; }
+        public Action<string> FirstResponderChanged { get; set; }
 
-        Func<Point, bool> ShouldPassThrough { get; set; }
+        public Func<Point, bool> ShouldPassThrough { get; set; }
     }
 }
