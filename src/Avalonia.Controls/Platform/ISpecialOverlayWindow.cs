@@ -2,7 +2,7 @@
 
 namespace Avalonia.Platform
 {
-    public interface IOverlayWindowImpl
+    public interface ISpecialOverlayWindow
     {
         public Action<string> FirstResponderChanged { get; set; }
 
