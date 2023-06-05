@@ -140,18 +140,7 @@ namespace Avalonia.Controls
 
         private void ControlPointerReleased(object? sender, PointerReleasedEventArgs e)
         {
-            StopTimer();
-
-            var control = (Control)sender!;
-            var showDelay = ToolTip.GetShowDelay(control);
-            if (showDelay == 0)
-            {
-                Open(control);
-            }
-            else
-            {
-                StartShowTimer(showDelay, control, e);
-            }
+            // No need to start it back up, right?
         }
 
         private void ControlPointerPressed(object? sender, PointerPressedEventArgs e)
