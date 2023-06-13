@@ -406,8 +406,8 @@ namespace Avalonia.Base.UnitTests.Input
         {
             using (UnitTestApplication.Start(TestServices.RealFocus))
             {
-                var target1 = new Decorator();
-                var target2 = new Decorator();
+                var target1 = new Decorator() { Focusable = true };
+                var target2 = new Decorator() { Focusable = true };
                 var panel1 = new Panel { Children = { target1 } };
                 var panel2 = new Panel { Children = { target2 } };
                 var root = new TestRoot
@@ -506,8 +506,8 @@ namespace Avalonia.Base.UnitTests.Input
         {
             using (UnitTestApplication.Start(TestServices.RealFocus))
             {
-                var target1 = new Decorator();
-                var target2 = new Decorator();
+                var target1 = new Decorator() { Focusable = true };
+                var target2 = new Decorator() { Focusable = true };
                 
                 var root1 = new TestRoot
                 {

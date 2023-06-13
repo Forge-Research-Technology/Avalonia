@@ -263,6 +263,6 @@ namespace Avalonia.Input
             }
         }
 
-        private static bool IsVisible(IInputElement e) => (e as Visual)?.IsVisible ?? true;
+        private static bool IsVisible(IInputElement e) => (e as Visual)?.IsEffectivelyVisible ?? true;
     }
 }
