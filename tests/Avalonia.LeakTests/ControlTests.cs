@@ -16,6 +16,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Rendering;
+using Avalonia.Rendering.Composition;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.UnitTests;
@@ -462,13 +463,11 @@ namespace Avalonia.LeakTests
         {
             using (Start())
             {
-                var renderer = RendererMocks.CreateRenderer();
-                renderer.Setup(x => x.Dispose());
                 var impl = new Mock<IWindowImpl>();
                 impl.Setup(r => r.TryGetFeature(It.IsAny<Type>())).Returns(null);
                 impl.SetupGet(x => x.RenderScaling).Returns(1);
                 impl.SetupProperty(x => x.Closed);
-                impl.Setup(x => x.CreateRenderer(It.IsAny<IRenderRoot>())).Returns(renderer.Object);
+                impl.Setup(x => x.Compositor).Returns(RendererMocks.CreateDummyCompositor());
                 impl.Setup(x => x.Dispose()).Callback(() => impl.Object.Closed());
 
                 AvaloniaLocator.CurrentMutable.Bind<IWindowingPlatform>()
@@ -479,7 +478,7 @@ namespace Avalonia.LeakTests
                 };
                 window.Show();
                 window.Close();
-                renderer.Verify(r => r.Dispose());
+                Assert.True(((CompositingRenderer)window.Renderer).IsDisposed);
             }
         }
 
@@ -558,10 +557,10 @@ namespace Avalonia.LeakTests
                     control.ContextMenu = null;
                 }
 
-                var window = new Window();
+                var window = new Window { Focusable = true };
                 window.Show();
 
-                Assert.Same(window, FocusManager.Instance.Current);
+                Assert.Same(window, window.FocusManager.GetFocusedElement());
 
                 // Context menu in resources means the baseline may not be 0.
                 var initialMenuCount = 0;
@@ -605,10 +604,10 @@ namespace Avalonia.LeakTests
                     contextMenu.Close();
                 }
 
-                var window = new Window();
+                var window = new Window { Focusable = true };
                 window.Show();
 
-                Assert.Same(window, FocusManager.Instance.Current);
+                Assert.Same(window, window.FocusManager.GetFocusedElement());
 
                 // Context menu in resources means the baseline may not be 0.
                 var initialMenuCount = 0;
