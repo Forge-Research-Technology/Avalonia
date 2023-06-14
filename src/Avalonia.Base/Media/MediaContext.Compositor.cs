@@ -78,7 +78,7 @@ partial class MediaContext
             // Nothing to do, and there are no pending commits
             return false;
         
-        foreach (var c in _requestedCommits)
+        foreach (var c in _requestedCommits.ToArray())
             CommitCompositor(c);
         
         _requestedCommits.Clear();
