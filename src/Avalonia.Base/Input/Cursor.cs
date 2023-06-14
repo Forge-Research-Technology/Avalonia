@@ -60,7 +60,7 @@ namespace Avalonia.Input
         {
         }
 
-        internal ICursorImpl PlatformImpl { get; }
+        public ICursorImpl PlatformImpl { get; }
 
         public void Dispose() => PlatformImpl.Dispose();
 
