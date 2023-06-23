@@ -881,4 +881,26 @@
     }
 }
 
+-(void) overlayWindowDidBecomeKey:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidBecomeKey");
+    if (_parent == nullptr)
+    {
+        return;
+    }
+
+    _parent->BaseEvents->Activated();
+}
+
+-(void) overlayWindowDidResignKey:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidResignKey");
+    if (_parent == nullptr)
+    {
+        return;
+    }
+
+    _parent->BaseEvents->Deactivated();
+}
+
 @end
