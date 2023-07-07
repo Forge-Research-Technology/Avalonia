@@ -664,11 +664,11 @@ extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
     }
 }
 
-extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events, IAvnGlContext* gl)
+extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events)
 {
     @autoreleasepool
     {
-        IAvnWindow* ptr = (IAvnWindow*)new WindowOverlayImpl(overlayWindow, parentView, events, gl);
+        IAvnWindow* ptr = (IAvnWindow*)new WindowOverlayImpl(overlayWindow, parentView, events);
         return ptr;
     }
 }
