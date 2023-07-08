@@ -100,8 +100,6 @@ namespace Avalonia.Native
                 _factory.MacOptions.SetShowInDock(macOpts.ShowInDock ? 1 : 0);
                 _factory.MacOptions.SetDisableSetProcessName(macOpts.DisableSetProcessName ? 1 : 0);
             }
-            // Moved initialize after MacOptions because we need to set DisableAppDelegate prior
-            _factory.Initialize(new GCHandleDeallocator(), applicationPlatform);
 
             AvaloniaLocator.CurrentMutable
                 .Bind<IDispatcherImpl>()
@@ -185,7 +183,7 @@ namespace Avalonia.Native
 
         public IWindowImpl CreateOverlay(IntPtr parentWindow, string parentView)
         {
-            return new WindowImpl(parentWindow, parentView, _factory, _options, _platformGl);
+            return new WindowImpl(parentWindow, parentView, _factory, _options);
         }
     }
 }
