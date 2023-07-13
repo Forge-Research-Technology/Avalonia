@@ -17,7 +17,7 @@
     NSEvent* _lastMouseDownEvent;
     bool _lastKeyHandled;
     AvnPixelSize _lastPixelSize;
-    NSObject<IRenderTarget>* _renderTarget;
+    NSObject<IRenderTarget>* _currentRenderTarget;
     AvnPlatformResizeReason _resizeReason;
     AvnAccessibilityElement* _accessibilityChild;
     NSRect _cursorRect;
@@ -41,24 +41,48 @@
 
 - (void) updateRenderTarget
 {
-    if (_parent->IsOverlay())
-    {
-        // Powerpoint overlay needs to go without scale factor
-        [_renderTarget resize:_lastPixelSize withScale:1];
+    if(_currentRenderTarget) {
+        if (_parent->IsOverlay())
+        {
+            // Powerpoint overlay needs to go without scale factor
+            [_currentRenderTarget resize:_lastPixelSize withScale:1];
+        }
+        else
+        {
+            // Normal views need scale factor in order to avoid fuzzy fonts
+            [_currentRenderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
+        }
+        [self setNeedsDisplayInRect:[self frame]];
     }
-    else
+}
+
+
+-(void) setRenderTarget:(NSObject<IRenderTarget>*)target
+{
+    if([self layer])
     {
-        // Normal views need scale factor in order to avoid fuzzy fonts
-        [_renderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
+        [self layer].delegate = nil;
     }
-    [self setNeedsDisplayInRect:[self frame]];
+    _currentRenderTarget = target;
+    auto layer = [target layer];
+    [self setLayer: layer];
+    [layer setDelegate: self];
+    layer.needsDisplayOnBoundsChange = YES;
+    [self updateRenderTarget];
+}
+
+-(void)displayLayer: (CALayer*)layer
+{
+    [self updateLayer];
 }
 
 -(AvnView*)  initWithParent: (WindowBaseImpl*) parent
 {
     self = [super init];
-    _renderTarget = parent->renderTarget;
     [self setWantsLayer:YES];
+    [self setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft];
+
+    [self setCanDrawSubviewsIntoLayer: NO];
     [self setLayerContentsRedrawPolicy: NSViewLayerContentsRedrawDuringViewResize];
 
     _parent = parent;
@@ -84,12 +108,6 @@
 - (BOOL)wantsUpdateLayer
 {
     return YES;
-}
-
-- (void)setLayer:(CALayer *)layer
-{
-    [_renderTarget setNewLayer: layer];
-    [super setLayer: layer];
 }
 
 - (BOOL)isOpaque
@@ -176,14 +194,6 @@
 - (void)drawRect:(NSRect)dirtyRect
 {
     return;
-}
-
--(void) setSwRenderedFrame: (AvnFramebuffer*) fb dispose: (IUnknown*) dispose
-{
-    @autoreleasepool {
-        [_renderTarget setSwFrame:fb];
-        dispose->Release();
-    }
 }
 
 - (AvnPoint) translateLocalPoint:(AvnPoint)pt

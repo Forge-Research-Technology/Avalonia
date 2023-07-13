@@ -1,6 +1,6 @@
 #include "WindowOverlayImpl.h"
 
-WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events, IAvnGlContext *gl) : WindowImpl(events, gl), WindowBaseImpl(events, gl, false, true) {
+WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
 

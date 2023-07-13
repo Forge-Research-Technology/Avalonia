@@ -27,40 +27,6 @@ jobs:
 #       ArtifactName: 'PRNumber'
 #       publishLocation: 'Container'
       
-- job: Linux
-  pool:
-    vmImage: 'ubuntu-20.04'
-  steps:
-  - task: UseDotNet@2
-    displayName: 'Use .NET Core SDK 6.0.404'
-    inputs:
-      version: 6.0.404
-
-  - task: UseDotNet@2
-    displayName: 'Use .NET Core SDK 7.0.101'
-    inputs:
-      version: 7.0.101
-
-  - task: CmdLine@2
-    displayName: 'Install Workloads'
-    inputs:
-      script: |
-       dotnet workload install wasm-tools wasm-experimental
-
-  - task: CmdLine@2
-    displayName: 'Run Build'
-    inputs:
-      script: |
-        dotnet --info
-        printenv
-        ./build.sh --target CiAzureLinux --configuration=Release
-
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'VSTest'
-      testResultsFiles: '$(Build.SourcesDirectory)/artifacts/test-results/*.trx'
-    condition: not(canceled())
-     
 
 - job: macOS
   variables:
