@@ -6,7 +6,7 @@ using SkiaSharp;
 
 namespace Avalonia.Skia
 {
-    internal class GlyphTypefaceImpl : IGlyphTypeface
+    public class GlyphTypefaceImpl : IGlyphTypeface
     {
         private bool _isDisposed;
         private readonly SKTypeface _typeface;
@@ -31,6 +31,7 @@ namespace Avalonia.Skia
 
             Font.SetFunctionsOpenType();
 
+            Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.CapHeight, out var capHeight);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.HorizontalAscender, out var ascent);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.HorizontalDescender, out var descent);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.HorizontalLineGap, out var lineGap);
@@ -42,6 +43,7 @@ namespace Avalonia.Skia
             Metrics = new FontMetrics
             {
                 DesignEmHeight = (short)Face.UnitsPerEm,
+                CapHeight = capHeight,
                 Ascent = -ascent,
                 Descent = -descent,
                 LineGap = lineGap,

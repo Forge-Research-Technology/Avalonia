@@ -29,6 +29,7 @@ namespace Avalonia.UnitTests
             Metrics = new FontMetrics
             {
                 DesignEmHeight = (short)scale,
+                CapHeight = (int)(metrics.GetXVariation(OpenTypeMetricsTag.CapHeight) / defaultFontRenderingEmSize * scale),
                 Ascent = (int)(metrics.GetXVariation(OpenTypeMetricsTag.HorizontalAscender) / defaultFontRenderingEmSize * scale),
                 Descent = (int)(metrics.GetXVariation(OpenTypeMetricsTag.HorizontalDescender) / defaultFontRenderingEmSize * scale),
                 LineGap = (int)(metrics.GetXVariation(OpenTypeMetricsTag.HorizontalLineGap) / defaultFontRenderingEmSize * scale),
