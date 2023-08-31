@@ -26,6 +26,11 @@
         public int Descent { get; init; }
 
         /// <summary>
+        ///     Gets the capital size above the baseline in design em size. 
+        /// </summary>
+        public int CapHeight { get; init; }
+
+        /// <summary>
         ///      Gets the recommended additional space between two lines of text in design em size. 
         /// </summary>
         public int LineGap { get; init; }

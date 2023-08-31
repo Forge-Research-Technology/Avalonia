@@ -31,6 +31,7 @@ namespace Avalonia.Direct2D1.Media
                 Font.TryGetVerticalFontExtents(out fontExtents);
             }
 
+            Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.CapHeight, out var capHeight);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.UnderlineOffset, out var underlinePosition);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.UnderlineSize, out var underlineThickness);
             Font.OpenTypeMetrics.TryGetPosition(OpenTypeMetricsTag.StrikeoutOffset, out var strikethroughPosition);
@@ -39,6 +40,7 @@ namespace Avalonia.Direct2D1.Media
             Metrics = new FontMetrics
             {
                 DesignEmHeight = (short)xScale,
+                CapHeight = capHeight,
                 Ascent = -fontExtents.Ascender,
                 Descent = -fontExtents.Descender,
                 LineGap = fontExtents.LineGap,
