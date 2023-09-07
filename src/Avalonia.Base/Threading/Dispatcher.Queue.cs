@@ -88,7 +88,35 @@ public partial class Dispatcher
     {
         s_uiThread = null;
     }
-    
+
+    public static void RemakeForUnitTests()
+    {
+        s_uiThread = CreateUIThreadDispatcher();
+    }
+
+    public void EmptyAfterUnitTests()
+    {
+        var st = Stopwatch.StartNew();
+        while (true)
+        {
+            _pendingInputImpl = _controlledImpl = null;
+            _impl = new DummyShuttingDownUnitTestDispatcherImpl();
+            if (st.Elapsed.TotalSeconds > 5)
+                throw new InvalidProgramException("You've caused dispatcher loop");
+
+            DispatcherOperation? job;
+            lock (InstanceLock)
+                job = _queue.Peek();
+
+            if (job == null || job.Priority <= DispatcherPriority.Inactive)
+            {
+                return;
+            }
+
+            ExecuteJob(job);
+        }
+    }
+
     internal static void ResetForUnitTests()
     {
         if (s_uiThread == null)

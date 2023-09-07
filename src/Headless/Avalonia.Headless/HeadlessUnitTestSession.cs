@@ -117,8 +117,9 @@ public sealed class HeadlessUnitTestSession : IDisposable
         var scope = AvaloniaLocator.EnterScope();
         try
         {
-            Dispatcher.ResetForUnitTests();
+            Dispatcher.UIThread.EmptyAfterUnitTests();
             _appBuilder.SetupUnsafe();
+            Dispatcher.RemakeForUnitTests();
         }
         catch
         {
@@ -129,7 +130,7 @@ public sealed class HeadlessUnitTestSession : IDisposable
         return Disposable.Create(() =>
         {
             scope.Dispose();
-            Dispatcher.ResetForUnitTests();
+            Dispatcher.UIThread.EmptyAfterUnitTests();
         });
     }
 
