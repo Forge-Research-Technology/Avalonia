@@ -39,7 +39,7 @@ internal class WinUiCompositorConnection : IRenderTimer
         _shared = new WinUiCompositionShared(compositor);
     }
 
-    private static bool TryCreateAndRegisterCore()
+    private static bool TryCreateAndRegisterCore(CancellationToken? shutdownCancellationToken)
     {
         var tcs = new TaskCompletionSource<bool>();
         var th = new Thread(() =>
@@ -65,7 +65,7 @@ internal class WinUiCompositorConnection : IRenderTimer
                 return;
             }
 
-            connect.RunLoop();
+            connect.RunLoop(shutdownCancellationToken);
         })
         {
             IsBackground = true,
@@ -94,9 +94,12 @@ internal class WinUiCompositorConnection : IRenderTimer
         }
     }
 
-    private void RunLoop()
+    private void RunLoop(CancellationToken? shutdownCancellationToken)
     {
         var cts = new CancellationTokenSource();
+        if (shutdownCancellationToken != null)
+            shutdownCancellationToken.Value.Register(() => cts.Cancel());
+
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
             cts.Cancel();
 
@@ -117,13 +120,13 @@ internal class WinUiCompositorConnection : IRenderTimer
         return Win32Platform.WindowsVersion >= WinUiCompositionShared.MinWinCompositionVersion;
     }
     
-    public static bool TryCreateAndRegister()
+    public static bool TryCreateAndRegister(CancellationToken? shutdownCancellationToken)
     {
         if (IsSupported())
         {
             try
             {
-                TryCreateAndRegisterCore();
+                TryCreateAndRegisterCore(shutdownCancellationToken);
                 return true;
             }
             catch (Exception e)
