@@ -112,8 +112,13 @@ public partial class Build
                 }
                 else
                 {
-                    // Always add branch to version tag when in nuget release mode
-                    Version += $"-{AzurePipelines.Instance.SourceBranchName}";
+                    // Always use branch minor part (after "release-") to version tag when in nuget release mode
+
+                    var minor = int.Parse(AzurePipelines.Instance.SourceBranchName[("release-".Length - 1)..]);
+                    var currentVersion = new Version(Version);
+                    var gruntVersion = new Version(currentVersion.Major, minor, currentVersion.Build);
+
+                    Version = gruntVersion.ToString();
                 }
 
                 PublishTestResults = true;
