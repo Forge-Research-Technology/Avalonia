@@ -78,7 +78,7 @@ static class Win32GlManager
 
             if (compositionMode == Win32CompositionMode.WinUIComposition
                 && WinUiCompositorConnection.IsSupported()
-                && WinUiCompositorConnection.TryCreateAndRegister())
+                && WinUiCompositorConnection.TryCreateAndRegister(opts.ShutdownCancellationToken))
             {
                 return;
             }
