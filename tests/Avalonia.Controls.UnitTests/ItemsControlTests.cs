@@ -844,6 +844,41 @@ namespace Avalonia.Controls.UnitTests
             Assert.Equal("foo", item.Content);
         }
 
+
+        [Fact]
+        public void LogicalChildren_Should_Be_Empty_When_Adding_Then_Removing_Item()
+        {
+            using var app = Start();
+            var item = new Border();
+
+            var items = new ObservableCollection<Control>();
+            var target = CreateTarget(itemsSource: items);
+
+            items.Add(item);
+            items.Remove(item);
+
+            Assert.Empty(target.LogicalChildren);
+            Assert.Null(item.GetLogicalParent());
+        }
+
+        [Fact]
+        public void LogicalChildren_Should_Not_Be_Empty_When_Adding_Item()
+        {
+            using var app = Start();
+            var item = new Border();
+
+            var items = new ObservableCollection<Control>();
+            var target = CreateTarget(itemsSource: items);
+
+            items.Add(item);
+
+            Assert.Collection(target.LogicalChildren, 
+                x => Assert.Same(item, x));
+
+            Assert.Same(target, item.GetLogicalParent());
+        }
+
+
         private static ItemsControl CreateTarget(
             object? dataContext = null,
             IBinding? displayMemberBinding = null,
