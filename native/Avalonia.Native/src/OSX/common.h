@@ -39,6 +39,7 @@ extern IAvnMenu* GetAppMenu ();
 extern NSMenuItem* GetAppMenuItem ();
 
 extern void InitializeAvnApp(IAvnApplicationEvents* events, bool disableAppDelegate);
+extern void ReleaseAvnAppEvents();
 extern NSApplicationActivationPolicy AvnDesiredActivationPolicy;
 extern NSPoint ToNSPoint (AvnPoint p);
 extern NSRect ToNSRect (AvnRect r);
