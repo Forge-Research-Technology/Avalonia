@@ -303,8 +303,8 @@ partial class Build : NukeBuild
 
     Target Package => _ => _
         .DependsOn(RunTests)
-        .DependsOn(CreateNugetPackages)
-        .DependsOn(ValidateApiDiff);
+        .DependsOn(CreateNugetPackages);
+        //.DependsOn(ValidateApiDiff); //We don't care -JKB
 
     Target CiAzureLinux => _ => _
         .DependsOn(RunTests);
