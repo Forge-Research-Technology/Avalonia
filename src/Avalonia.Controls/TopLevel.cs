@@ -592,7 +592,6 @@ namespace Avalonia.Controls
             // We need to wait for the renderer to complete any in-flight operations
             Renderer.Dispose();
             StopRendering();
-
             Debug.Assert(PlatformImpl != null);
             // The PlatformImpl is completely invalid at this point
             PlatformImpl = null;
