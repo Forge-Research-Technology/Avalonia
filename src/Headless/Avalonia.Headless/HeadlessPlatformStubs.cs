@@ -21,7 +21,7 @@ using Avalonia.Utilities;
 
 namespace Avalonia.Headless
 {
-    internal class HeadlessClipboardStub : IClipboard
+    public class HeadlessClipboardStub : IClipboard
     {
         private string? _text;
         private IDataObject? _data;
@@ -70,7 +70,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessCursorFactoryStub : ICursorFactory
+    public class HeadlessCursorFactoryStub : ICursorFactory
     {
         public ICursorImpl GetCursor(StandardCursorType cursorType) => new CursorStub();
         public ICursorImpl CreateCursor(IBitmapImpl cursor, PixelPoint hotSpot) => new CursorStub();
@@ -81,7 +81,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessGlyphTypefaceImpl : IGlyphTypeface
+    public class HeadlessGlyphTypefaceImpl : IGlyphTypeface
     {
         public FontMetrics Metrics => new FontMetrics
         {
@@ -164,7 +164,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessTextShaperStub : ITextShaperImpl
+    public class HeadlessTextShaperStub : ITextShaperImpl
     {
         public ShapedBuffer ShapeText(ReadOnlyMemory<char> text, TextShaperOptions options)
         {
@@ -195,7 +195,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessFontManagerStub : IFontManagerImpl
+    public class HeadlessFontManagerStub : IFontManagerImpl
     {
         private readonly string _defaultFamilyName;
 
@@ -250,7 +250,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessIconLoaderStub : IPlatformIconLoader
+    public class HeadlessIconLoaderStub : IPlatformIconLoader
     {
         private class IconStub : IWindowIconImpl
         {
@@ -275,7 +275,7 @@ namespace Avalonia.Headless
         }
     }
 
-    internal class HeadlessScreensStub : IScreenImpl
+    public class HeadlessScreensStub : IScreenImpl
     {
         public int ScreenCount { get; } = 1;
 
@@ -301,7 +301,7 @@ namespace Avalonia.Headless
         }
     }
     
-    internal static class TextTestHelper
+    public static class TextTestHelper
     {
         public static int GetStartCharIndex(ReadOnlyMemory<char> text)
         {

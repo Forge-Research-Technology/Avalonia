@@ -17,7 +17,7 @@ namespace Avalonia.Headless;
 /// <summary>
 /// Headless unit test session that needs to be used by the actual testing framework.
 /// All UI tests are supposed to be executed from one of the <see cref="Dispatch"/> methods to keep execution flow on the UI thread.
-/// Disposing unit test session stops internal dispatcher loop. 
+/// Disposing unit test session stops public dispatcher loop. 
 /// </summary>
 [Unstable("This API is experimental and might be unstable. Use on your risk. API might or might not be changed in a minor update.")]
 public sealed class HeadlessUnitTestSession : IDisposable

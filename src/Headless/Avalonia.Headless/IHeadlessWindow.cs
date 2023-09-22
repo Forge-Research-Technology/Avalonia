@@ -6,7 +6,7 @@ using Avalonia.Utilities;
 
 namespace Avalonia.Headless
 {
-    internal interface IHeadlessWindow
+    public interface IHeadlessWindow
     {
         WriteableBitmap? GetLastRenderedFrame();
         void KeyPress(Key key, RawInputModifiers modifiers);
