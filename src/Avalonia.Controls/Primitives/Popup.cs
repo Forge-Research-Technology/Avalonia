@@ -107,6 +107,9 @@ namespace Avalonia.Controls.Primitives
         public static readonly StyledProperty<bool> IsLightDismissEnabledProperty =
             AvaloniaProperty.Register<Popup, bool>(nameof(IsLightDismissEnabled));
 
+        public static readonly StyledProperty<bool> PassFocusOnCloseProperty =
+            AvaloniaProperty.Register<Popup, bool>(nameof(PassFocusOnClose), defaultValue: true);
+
         /// <summary>
         /// Defines the <see cref="VerticalOffset"/> property.
         /// </summary>
@@ -208,6 +211,12 @@ namespace Avalonia.Controls.Primitives
         {
             get => GetValue(IsOpenProperty);
             set => SetValue(IsOpenProperty, value);
+        }
+
+        public bool PassFocusOnClose
+        {
+            get => GetValue(PassFocusOnCloseProperty);
+            set => SetValue(PassFocusOnCloseProperty, value);
         }
 
         /// <summary>
@@ -727,32 +736,35 @@ namespace Avalonia.Controls.Primitives
 
             Closed?.Invoke(this, EventArgs.Empty);
 
-            var focusCheck = FocusManager.GetFocusManager(this)?.GetFocusedElement();
-
-            // Focus is set to null as part of popup closing, so we only want to
-            // set focus to PlacementTarget if this is the case
-            if (focusCheck == null)
+            if (PassFocusOnClose)
             {
-                if (PlacementTarget != null)
-                {
-                    var e = (Control?)PlacementTarget;
+                var focusCheck = FocusManager.GetFocusManager(this)?.GetFocusedElement();
 
-                    while (e is object && (!e.Focusable || !e.IsEffectivelyEnabled || !e.IsVisible))
-                    {
-                        e = e.VisualParent as Control;
-                    }
-
-                    if (e is object)
-                    {
-                        e.Focus();
-                    }
-                }
-                else
+                // Focus is set to null as part of popup closing, so we only want to
+                // set focus to PlacementTarget if this is the case
+                if (focusCheck == null)
                 {
-                    var anc = this.FindLogicalAncestorOfType<Control>();
-                    if (anc != null)
+                    if (PlacementTarget != null)
                     {
-                        anc.Focus();
+                        var e = (Control?)PlacementTarget;
+
+                        while (e is object && (!e.Focusable || !e.IsEffectivelyEnabled || !e.IsVisible))
+                        {
+                            e = e.VisualParent as Control;
+                        }
+
+                        if (e is object)
+                        {
+                            e.Focus();
+                        }
+                    }
+                    else
+                    {
+                        var anc = this.FindLogicalAncestorOfType<Control>();
+                        if (anc != null)
+                        {
+                            anc.Focus();
+                        }
                     }
                 }
             }
