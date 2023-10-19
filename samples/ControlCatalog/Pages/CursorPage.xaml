@@ -25,6 +25,9 @@
       <Button Cursor="{Binding CustomCursor}" Margin="0 8" Padding="16">
         <TextBlock>Custom Cursor</TextBlock>
       </Button>
+      <Button Cursor="{Binding CustomCursorScaled}" Margin="0 8" Padding="16">
+        <TextBlock>Custom Cursor With scaling</TextBlock>
+      </Button>
     </StackPanel>
  </Grid>
 </UserControl>

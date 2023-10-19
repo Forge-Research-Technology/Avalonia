@@ -218,7 +218,15 @@ namespace Avalonia.Controls
             this.GetObservable(PointerOverElementProperty)
                 .Select(
                     x => (x as InputElement)?.GetObservable(CursorProperty) ?? Observable.Empty<Cursor>())
-                .Switch().Subscribe(cursor => PlatformImpl?.SetCursor(cursor?.PlatformImpl));
+                .Switch().Subscribe(cursor =>
+                {
+                    if(cursor is not null)
+                    {
+                        cursor.Scale(RenderScaling);
+                    }
+
+                    PlatformImpl?.SetCursor(cursor?.PlatformImpl);
+                });
 
             if (((IStyleHost)this).StylingParent is IResourceHost applicationResources)
             {
