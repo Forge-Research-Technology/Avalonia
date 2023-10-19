@@ -488,8 +488,10 @@ interface IAvaloniaNativeFactory : IUnknown
      HRESULT Initialize(IAvnGCHandleDeallocatorCallback* deallocator, IAvnApplicationEvents* appCb,
         IAvnDispatcher* dispatcher);
      IAvnMacOptions* GetMacOptions();
+
      HRESULT CreateWindow(IAvnWindowEvents* cb, IAvnWindow** ppv);
      HRESULT CreatePopup(IAvnWindowEvents* cb, IAvnPopup** ppv);
+     HRESULT CreateOverlay([intptr]void* overlayWindow, char* parentView, IAvnWindowEvents* cb, IAvnWindow** ppv);
      HRESULT CreatePlatformThreadingInterface(IAvnPlatformThreadingInterface** ppv);
      HRESULT CreateSystemDialogs(IAvnSystemDialogs** ppv);
      HRESULT CreateScreens(IAvnScreens** ppv);
@@ -600,6 +602,8 @@ interface IAvnWindowBaseEvents : IUnknown
                                          AvnInputModifiers modifiers, AvnDragDropEffects effects,
                                          IAvnClipboard* clipboard, [intptr]void* dataObjectHandle);
      IAvnAutomationPeer* GetAutomationPeer();
+     bool HitTest(AvnPoint point);
+     void LogFirstResponder([const] char* text);
 }
 
 [uuid(1ae178ee-1fcc-447f-b6dd-b7bb727f934c)]

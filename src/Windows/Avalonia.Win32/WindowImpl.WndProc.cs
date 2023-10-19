@@ -6,10 +6,12 @@ using Avalonia.Controls.Platform;
 
 namespace Avalonia.Win32
 {
-    internal partial class WindowImpl
+    public partial class WindowImpl
     {
         protected virtual unsafe IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
+            Win32Platform.Instance.EnsureThreadContext();
+
             IntPtr lRet = IntPtr.Zero;
             bool callDwp = true;
 

@@ -12,7 +12,7 @@ using Avalonia.Media.TextFormatting;
 
 namespace Avalonia.Headless
 {
-    internal class HeadlessPlatformRenderInterface : IPlatformRenderInterface, IPlatformRenderInterfaceContext
+    public class HeadlessPlatformRenderInterface : IPlatformRenderInterface, IPlatformRenderInterfaceContext
     {
         public static void Initialize()
         {
@@ -131,7 +131,7 @@ namespace Avalonia.Headless
             return new HeadlessGlyphRunStub(glyphTypeface, fontRenderingEmSize, baselineOrigin);
         }
 
-        internal class HeadlessGlyphRunStub : IGlyphRunImpl
+        public class HeadlessGlyphRunStub : IGlyphRunImpl
         {
             public HeadlessGlyphRunStub(
                 IGlyphTypeface glyphTypeface,
@@ -426,7 +426,7 @@ namespace Avalonia.Headless
             }
         }
 
-        internal class HeadlessDrawingContextStub : IDrawingContextImpl
+        public class HeadlessDrawingContextStub : IDrawingContextImpl
         {
             public void Dispose()
             {

@@ -82,7 +82,7 @@ namespace Avalonia.Input
             _scaledImages = scaledImages;
         }
 
-        internal ICursorImpl PlatformImpl { get; private set; }
+        public ICursorImpl PlatformImpl { get; private set; }
 
         public void Dispose() => PlatformImpl.Dispose();
 

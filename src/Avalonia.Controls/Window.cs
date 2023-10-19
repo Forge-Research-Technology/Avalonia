@@ -500,6 +500,11 @@ namespace Avalonia.Controls
                 owner.RemoveChild(this);
             }
 
+            if (_showingAsDialog)
+            {
+                SetEnabledOnOwnerAndSiblings(true);
+            }
+
             Owner = null;
 
             PlatformImpl?.Dispose();
@@ -791,6 +796,8 @@ namespace Avalonia.Controls
                 Owner = owner;
                 owner.AddChild(this, true);
 
+                SetEnabledOnOwnerAndSiblings(false);
+
                 SetWindowStartupLocation(owner);
 
                 StartRendering();
@@ -811,26 +818,38 @@ namespace Avalonia.Controls
             }
         }
 
-        private void UpdateEnabled()
+        private void SetEnabledOnOwnerAndSiblings(bool enabled)
         {
-            bool isEnabled = true;
+            if (Owner is not Window window)
+                return;
 
-            foreach (var (_, isDialog) in _children)
+            window.PlatformImpl?.SetEnabled(enabled);
+
+            foreach (var (child, _) in window._children)
             {
-                if (isDialog)
-                {
-                    isEnabled = false;
-                    break;
-                }
+                if (child == this)
+                    continue;
+
+                child.SetEnabledOnChildren(enabled);
             }
 
-            PlatformImpl?.SetEnabled(isEnabled);
+            if(!window._showingAsDialog)
+                window.SetEnabledOnOwnerAndSiblings(enabled);
+        }
+
+        private void SetEnabledOnChildren(bool enabled)
+        {
+            PlatformImpl?.SetEnabled(enabled);
+
+            foreach (var (child, _) in _children)
+            {
+                child.SetEnabledOnChildren(enabled);
+            }
         }
 
         private void AddChild(Window window, bool isDialog)
         {
             _children.Add((window, isDialog));
-            UpdateEnabled();
         }
 
         private void RemoveChild(Window window)
@@ -844,8 +863,6 @@ namespace Avalonia.Controls
                     _children.RemoveAt(i);
                 }
             }
-
-            UpdateEnabled();
         }
 
         private void OnGotInputWhenDisabled()

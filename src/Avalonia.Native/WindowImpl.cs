@@ -12,7 +12,7 @@ using Avalonia.Platform.Interop;
 
 namespace Avalonia.Native
 {
-    internal class WindowImpl : WindowBaseImpl, IWindowImpl
+    internal class WindowImpl : WindowBaseImpl, IWindowImpl, ISpecialOverlayWindow
     {
         private readonly AvaloniaNativePlatformOptions _opts;
         private readonly AvaloniaNativeGlPlatformGraphics _graphics;
@@ -36,6 +36,21 @@ namespace Avalonia.Native
             _nativeMenuExporter = new AvaloniaNativeMenuExporter(_native, factory);
             
             _inputMethod = new AvaloniaNativeTextInputMethod(_native);
+        }
+
+        internal WindowImpl(IntPtr parentWindow, string parentView, IAvaloniaNativeFactory factory, AvaloniaNativePlatformOptions opts) 
+            : base(factory)
+        {
+            // This constructor is for creating overlays on 3rd party windows (eg. Powerpoint)
+            _opts = opts;
+            _doubleClickHelper = new DoubleClickHelper();
+            
+            using (var e = new WindowEvents(this))
+            {
+                Init(_native = factory.CreateOverlay(parentWindow, parentView, e), factory.CreateScreens());
+            }
+            
+            // nativeMenuExporter isn't needed here (the main window has already created its menus)
         }
 
         class WindowEvents : WindowBaseEvents, IAvnWindowEvents

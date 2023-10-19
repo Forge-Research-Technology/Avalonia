@@ -8,7 +8,7 @@ using SkiaSharp;
 
 namespace Avalonia.Skia
 {
-    internal class FontManagerImpl : IFontManagerImpl
+    public class FontManagerImpl : IFontManagerImpl
     {
         private SKFontManager _skFontManager = SKFontManager.Default;
 

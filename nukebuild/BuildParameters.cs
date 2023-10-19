@@ -75,8 +75,8 @@ public partial class Build
             SkipPreviewer = b.SkipPreviewer;
 
             // CONFIGURATION
-            MainRepo = "https://github.com/AvaloniaUI/Avalonia";
-            MasterBranch = "refs/heads/master";
+            MainRepo = "https://github.com/Altua/Avalonia";
+            MasterBranch = "refs/heads/main";
             ReleaseBranchPrefix = "refs/heads/release/";
             ReleaseConfiguration = "Release";
             MSBuildSolution = RootDirectory / "dirs.proj";
@@ -120,6 +120,14 @@ public partial class Build
                 {
                     // Use AssemblyVersion with Build as version
                     Version += "-cibuild" + int.Parse(Environment.GetEnvironmentVariable("BUILD_BUILDID")).ToString("0000000") + "-beta";
+                }
+                else
+                {
+                    // Always use branch name as minor part of version (must be an integer, i.e. complete naming release/2)
+                    var minor = int.Parse(AzurePipelines.Instance.SourceBranchName);
+                    var currentVersion = new Version(Version);
+                    var gruntVersion = new Version(currentVersion.Major, minor, currentVersion.Build);
+                    Version = gruntVersion.ToString();
                 }
 
                 PublishTestResults = true;

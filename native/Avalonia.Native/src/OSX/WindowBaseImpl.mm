@@ -24,7 +24,7 @@ WindowBaseImpl::~WindowBaseImpl() {
     Window = nullptr;
 }
 
-WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel) {
+WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel, bool overlayWindow) {
     _shown = false;
     _inResize = false;
     BaseEvents = events;
@@ -39,13 +39,16 @@ WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel) {
     lastMinSize = NSSize { 0, 0 };
     lastMenu = nullptr;
     
-    CreateNSWindow(usePanel);
-    
-    [Window setContentView:StandardContainer];
-    [Window setBackingType:NSBackingStoreBuffered];
-    [Window setContentMinSize:lastMinSize];
-    [Window setContentMaxSize:lastMaxSize];
-    [Window setOpaque:false];
+    if (!overlayWindow) {
+        CreateNSWindow(usePanel);
+        
+        [Window setContentView:StandardContainer];
+        [Window setBackingType:NSBackingStoreBuffered];
+        [Window setContentMinSize:lastMinSize];
+        [Window setContentMaxSize:lastMaxSize];
+        [Window setOpaque:false];
+    }
+
 }
 
 HRESULT WindowBaseImpl::ObtainNSViewHandle(void **ret) {
@@ -274,6 +277,10 @@ HRESULT WindowBaseImpl::SetMinMaxSize(AvnSize minSize, AvnSize maxSize) {
 
 HRESULT WindowBaseImpl::Resize(double x, double y, AvnPlatformResizeReason reason) {
     if (_inResize) {
+        return S_OK;
+    }
+
+    if(this->IsOverlay()) {
         return S_OK;
     }
 
@@ -608,6 +615,11 @@ bool WindowBaseImpl::IsModal() {
     return false;
 }
 
+bool WindowBaseImpl::IsOverlay()
+{
+    return false;
+}
+
 void WindowBaseImpl::UpdateStyle() {
     [Window setStyleMask:CalculateStyleMask()];
 }
@@ -656,6 +668,15 @@ extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
     @autoreleasepool
     {
         IAvnWindow* ptr = (IAvnWindow*)new WindowImpl(events);
+        return ptr;
+    }
+}
+
+extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events)
+{
+    @autoreleasepool
+    {
+        IAvnWindow* ptr = (IAvnWindow*)new WindowOverlayImpl(overlayWindow, parentView, events);
         return ptr;
     }
 }

@@ -79,7 +79,7 @@ namespace Avalonia.Media
         /// </summary>
         public IFontCollection SystemFonts => _fontCollections[SystemFontsKey];
 
-        internal IFontManagerImpl PlatformImpl { get; }
+        public IFontManagerImpl PlatformImpl { get; }
 
         /// <summary>
         ///     Tries to get a glyph typeface for specified typeface.

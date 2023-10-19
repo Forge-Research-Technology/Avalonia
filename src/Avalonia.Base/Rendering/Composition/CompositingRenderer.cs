@@ -211,6 +211,10 @@ internal class CompositingRenderer : IRendererWithCompositor, IHitTester
             return;
 
         QueueUpdate();
+
+        if(CompositionTarget is null)
+            return;
+
         CompositionTarget.RequestRedraw();
         MediaContext.Instance.ImmediateRenderRequested(CompositionTarget);
     }

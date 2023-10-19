@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using Avalonia.OpenGL;
 using Avalonia.Platform;
 
@@ -137,4 +138,6 @@ public class Win32PlatformOptions
     /// and <see cref="CompositionMode"/> only accepts null or <see cref="Win32CompositionMode.RedirectionSurface"/>.
     /// </summary>
     public IPlatformGraphics? CustomPlatformGraphics { get; set; }
+
+    public CancellationToken? ShutdownCancellationToken { get; set; }
 }

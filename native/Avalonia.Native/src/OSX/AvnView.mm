@@ -42,7 +42,16 @@
 - (void) updateRenderTarget
 {
     if(_currentRenderTarget) {
-        [_currentRenderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
+        if (_parent->IsOverlay())
+        {
+            // Powerpoint overlay needs to go without scale factor
+            [_currentRenderTarget resize:_lastPixelSize withScale:1];
+        }
+        else
+        {
+            // Normal views need scale factor in order to avoid fuzzy fonts
+            [_currentRenderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
+        }
         [self setNeedsDisplayInRect:[self frame]];
     }
 }
@@ -146,6 +155,11 @@
     _parent->UpdateCursor();
 
     auto fsize = [self convertSizeToBacking: [self frame].size];
+    if (_parent->IsOverlay())
+    {
+        // Powerpoint overlay needs to go without scale factor
+        fsize = [self frame].size;
+    }
 
     if(_lastPixelSize.Width != (int)fsize.width || _lastPixelSize.Height != (int)fsize.height)
     {
@@ -201,6 +215,12 @@
 - (void) viewDidChangeBackingProperties
 {
     auto fsize = [self convertSizeToBacking: [self frame].size];
+    if (_parent->IsOverlay())
+    {
+        // Powerpoint overlay needs to go without scale factor
+        fsize = [self frame].size;
+    }
+
     _lastPixelSize.Width = (int)fsize.width;
     _lastPixelSize.Height = (int)fsize.height;
     [self updateRenderTarget];
@@ -218,6 +238,11 @@
     if(_parent == nullptr)
     {
         return TRUE;
+    }
+
+    if (_parent->IsOverlay())
+    {
+        return FALSE;
     }
 
     auto parentWindow = _parent->GetWindowProtocol();
@@ -304,7 +329,11 @@
         _parent->BaseEvents->RawMouseEvent(type, timestamp, modifiers, point, delta);
     }
 
-    [super mouseMoved:event];
+    if (_parent == nullptr || !_parent->IsOverlay())
+    {
+        // We only forward the event when not overlay, otherwise will mess powerpoint
+        [super mouseMoved:event];
+    }
 }
 
 - (BOOL) resignFirstResponder
@@ -789,6 +818,57 @@
     return [[self accessibilityChild] accessibilityFocusedUIElement];
 }
 
+- (NSView *)hitTest:(NSPoint)inputPoint {
+    NSView *result = [super hitTest:inputPoint];
+
+    // Send the view name to c# for the focus manager
+    // We will mainly be treating these scenarios:
+    // Grunt area -> AvnView
+    // Slide area -> PPTView or TIDTextInputDriver
+    // Other area -> anything else?
+
+
+    // We need to do a minor adjust here because the input coordinates are based on the parent view, not the view itself
+    // https://developer.apple.com/documentation/appkit/nsview/1483364-hittest?language=objc
+    inputPoint.y += -[self frame].origin.y;
+    
+    auto localPoint = [self convertPoint:inputPoint toView:self];
+    auto avnPoint = [AvnView toAvnPoint:localPoint];
+    auto point = [self translateLocalPoint:avnPoint];
+    bool hitTestResult = false;
+
+    // Check if we hit any avalonia controls
+    if (result == self)
+    {
+        hitTestResult = _parent->BaseEvents->HitTest(point);
+        if (!hitTestResult)
+        {
+            result = nil;
+        }
+    }
+
+    // Going with dispatch async on global queue in order to return control to powerpoint quickly and avoid UI hangs
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSString* firstResponderName;
+        if (hitTestResult)
+        {
+            firstResponderName = @"AvnView";
+        }
+        else
+        {
+            NSView* nextResponder = [[self window] firstResponder];
+            while (nextResponder == self)
+            {
+                nextResponder = [nextResponder nextResponder];
+            }
+            firstResponderName = NSStringFromClass([nextResponder class]);
+        }
+        _parent->BaseEvents->LogFirstResponder([firstResponderName UTF8String]);
+    });
+
+    return result;
+}
+
 - (void) setText:(NSString *)text{
     [[_text mutableString] setString:text];
 }
@@ -809,6 +889,28 @@
     if([self inputContext]) {
         [[self inputContext] invalidateCharacterCoordinates];
     }
+}
+
+-(void) overlayWindowDidBecomeKey:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidBecomeKey");
+    if (_parent == nullptr)
+    {
+        return;
+    }
+
+    _parent->BaseEvents->Activated();
+}
+
+-(void) overlayWindowDidResignKey:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidResignKey");
+    if (_parent == nullptr)
+    {
+        return;
+    }
+
+    _parent->BaseEvents->Deactivated();
 }
 
 @end

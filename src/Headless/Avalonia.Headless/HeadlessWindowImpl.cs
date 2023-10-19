@@ -17,7 +17,7 @@ using Avalonia.Utilities;
 
 namespace Avalonia.Headless
 {
-    internal class HeadlessWindowImpl : IWindowImpl, IPopupImpl, IFramebufferPlatformSurface, IHeadlessWindow
+    public class HeadlessWindowImpl : IWindowImpl, IPopupImpl, IFramebufferPlatformSurface, IHeadlessWindow
     {
         private readonly IKeyboardDevice _keyboard;
         private readonly Stopwatch _st = Stopwatch.StartNew();

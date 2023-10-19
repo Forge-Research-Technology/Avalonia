@@ -13,7 +13,7 @@ namespace Avalonia.Headless
 {
     public static class AvaloniaHeadlessPlatform
     {
-        internal static Compositor? Compositor { get; private set; }
+        public static Compositor? Compositor { get; private set; }
 
         private class RenderTimer : DefaultRenderTimer
         {
@@ -65,7 +65,7 @@ namespace Avalonia.Headless
             public ITrayIconImpl? CreateTrayIcon() => null;
         }
         
-        internal static void Initialize(AvaloniaHeadlessPlatformOptions opts)
+        public static void Initialize(AvaloniaHeadlessPlatformOptions opts)
         {
             AvaloniaLocator.CurrentMutable
                 .Bind<IDispatcherImpl>().ToConstant(new ManagedDispatcherImpl(null))

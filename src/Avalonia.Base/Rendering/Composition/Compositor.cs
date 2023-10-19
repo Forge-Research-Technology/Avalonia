@@ -126,7 +126,7 @@ namespace Avalonia.Rendering.Composition
         {
             Dispatcher.UIThread.VerifyAccess();
             using var noPump = NonPumpingLockHelper.Use();
-            
+
             var commit = _nextCommit ??= new();
 
             (_invokeBeforeCommitRead, _invokeBeforeCommitWrite) = (_invokeBeforeCommitWrite, _invokeBeforeCommitRead);
@@ -184,7 +184,7 @@ namespace Avalonia.Rendering.Composition
                     }
                 }, TaskContinuationOptions.ExecuteSynchronously);
                 _nextCommit = null;
-                
+
                 return commit;
             }
         }

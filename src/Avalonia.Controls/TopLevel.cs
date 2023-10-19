@@ -422,7 +422,7 @@ namespace Avalonia.Controls
         /// </summary>
         public RendererDiagnostics RendererDiagnostics => Renderer.Diagnostics;
 
-        internal PixelPoint? LastPointerPosition => _pointerOverPreProcessor?.LastPosition;
+        public PixelPoint? LastPointerPosition => _pointerOverPreProcessor?.LastPosition;
         
         /// <summary>
         /// Gets the access key handler for the window.
@@ -600,7 +600,6 @@ namespace Avalonia.Controls
             // We need to wait for the renderer to complete any in-flight operations
             Renderer.Dispose();
             StopRendering();
-            
             Debug.Assert(PlatformImpl != null);
             // The PlatformImpl is completely invalid at this point
             PlatformImpl = null;
@@ -755,6 +754,7 @@ namespace Avalonia.Controls
                     this,
                     "PlatformImpl is null, couldn't handle input.");
             }
+
         }
 
         private void GlobalActualThemeVariantChanged(object? sender, EventArgs e)

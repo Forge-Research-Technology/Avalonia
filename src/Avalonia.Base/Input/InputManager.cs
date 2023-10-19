@@ -1,6 +1,7 @@
 using System;
 using Avalonia.Input.Raw;
 using Avalonia.Reactive;
+using Avalonia.Threading;
 
 namespace Avalonia.Input
 {
@@ -31,10 +32,19 @@ namespace Avalonia.Input
         /// <inheritdoc/>
         public void ProcessInput(RawInputEventArgs e)
         {
-            _preProcess.OnNext(e);
-            e.Device?.ProcessRawEvent(e);
-            _process.OnNext(e);
-            _postProcess.OnNext(e);
+            try
+            {
+                _preProcess.OnNext(e);
+                e.Device?.ProcessRawEvent(e);
+                _process.OnNext(e);
+                _postProcess.OnNext(e);
+            }
+            catch (Exception exception)
+            {
+                var isHandled = Dispatcher.UIThread.HandleUnhandledException(exception);
+                if (!isHandled)
+                    throw;
+            }
         }
     }
 }

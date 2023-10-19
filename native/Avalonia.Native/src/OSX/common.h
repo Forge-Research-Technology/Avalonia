@@ -12,6 +12,7 @@ extern IAvnPlatformThreadingInterface* CreatePlatformThreading();
 extern void FreeAvnGCHandle(void* handle);
 extern void PostDispatcherCallback(IAvnActionCallback* cb);
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events);
+extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events);
 extern IAvnPopup* CreateAvnPopup(IAvnWindowEvents*events);
 extern IAvnSystemDialogs* CreateSystemDialogs();
 extern IAvnScreens* CreateScreens();
@@ -45,6 +46,8 @@ extern NSRect ToNSRect (AvnRect r);
 extern AvnPoint ToAvnPoint (NSPoint p);
 extern AvnPoint ConvertPointY (AvnPoint p);
 extern NSSize ToNSSize (AvnSize s);
+extern NSView* FindNSView(NSWindow* window, NSString* viewName);
+
 #ifdef DEBUG
 #define NSDebugLog(...) NSLog(__VA_ARGS__)
 #else

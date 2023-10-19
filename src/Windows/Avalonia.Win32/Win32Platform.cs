@@ -36,7 +36,7 @@ namespace Avalonia
 
 namespace Avalonia.Win32
 {
-    internal class Win32Platform : IWindowingPlatform, IPlatformIconLoader, IPlatformLifetimeEventsImpl
+    public class Win32Platform : IWindowingPlatform, IPlatformIconLoader, IPlatformLifetimeEventsImpl
     {
         private static readonly Win32Platform s_instance = new();
         private static Win32PlatformOptions? s_options;
@@ -47,9 +47,14 @@ namespace Avalonia.Win32
         private IntPtr _hwnd;
         private Win32DispatcherImpl _dispatcher;
 
+        private SynchronizationContext? _synchronizationContext;
+        private bool _enforcePerMonitorAwareness;
+
         public Win32Platform()
         {
-            SetDpiAwareness();
+            _synchronizationContext = SynchronizationContext.Current;
+
+            _enforcePerMonitorAwareness = SetDpiAwareness();
             CreateMessageWindow();
             _dispatcher = new Win32DispatcherImpl(_hwnd);
         }
@@ -71,6 +76,19 @@ namespace Avalonia.Win32
 
         internal static Compositor Compositor
             => s_compositor ?? throw new InvalidOperationException($"{nameof(Win32Platform)} hasn't been initialized");
+
+        public void EnsureThreadContext()
+        {
+            if ((_dispatcher is null || _dispatcher.CurrentThreadIsLoopThread) && SynchronizationContext.Current is null)
+            {
+                SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
+            }
+
+            if (_enforcePerMonitorAwareness)
+            {
+                SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+            }
+        }
 
         public static void Initialize()
         {
@@ -131,6 +149,8 @@ namespace Avalonia.Win32
         [SuppressMessage("Microsoft.StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation", Justification = "Using Win32 naming for consistency.")]
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
+            EnsureThreadContext();
+
             if (msg == (int)WindowsMessage.WM_DISPATCH_WORK_ITEM 
                 && wParam.ToInt64() == Win32DispatcherImpl.SignalW 
                 && lParam.ToInt64() == Win32DispatcherImpl.SignalL) 
@@ -256,7 +276,7 @@ namespace Avalonia.Win32
             }
         }
 
-        private static void SetDpiAwareness()
+        private static bool SetDpiAwareness()
         {
             // Ideally we'd set DPI awareness in the manifest but this doesn't work for netcoreapp2.0
             // apps as they are actually dlls run by a console loader. Instead we have to do it in code,
@@ -269,7 +289,7 @@ namespace Avalonia.Win32
                 if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ||
                     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
                 {
-                    return;
+                    return true;
                 }
             }
 
@@ -279,10 +299,12 @@ namespace Avalonia.Win32
             if (method != IntPtr.Zero)
             {
                 SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE);
-                return;
+                return true;
             }
 
             SetProcessDPIAware();
+
+            return false;
         }
     }
 }

@@ -27,7 +27,7 @@ BEGIN_INTERFACE_MAP()
 
     virtual ~WindowBaseImpl();
 
-    WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel = false);
+    WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel = false, bool overlayWindow = false);
 
     virtual HRESULT ObtainNSWindowHandle(void **ret) override;
 
@@ -93,6 +93,7 @@ BEGIN_INTERFACE_MAP()
 
     virtual HRESULT CreateNativeControlHost(IAvnNativeControlHost **retOut) override;
 
+
     virtual HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode) override;
 
     virtual HRESULT SetFrameThemeVariant(AvnPlatformThemeVariant variant) override;
@@ -102,6 +103,7 @@ BEGIN_INTERFACE_MAP()
             void *sourceHandle) override;
 
     virtual bool IsModal();
+    virtual bool IsOverlay();
 
     id<AvnWindowProtocol> GetWindowProtocol ();
                            
@@ -112,6 +114,7 @@ BEGIN_INTERFACE_MAP()
     virtual bool CanZoom() { return false; }
                            
 protected:
+    NSSize lastSize;
     virtual NSWindowStyleMask CalculateStyleMask() = 0;
     virtual void UpdateStyle();
 
@@ -121,7 +124,6 @@ private:
 
     NSCursor *cursor;
     bool hasPosition;
-    NSSize lastSize;
     NSSize lastMinSize;
     NSSize lastMaxSize;
     AvnMenu* lastMenu;

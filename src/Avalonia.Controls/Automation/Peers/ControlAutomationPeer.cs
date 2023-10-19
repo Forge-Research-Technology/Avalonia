@@ -62,8 +62,16 @@ namespace Avalonia.Automation.Peers
         {
             var children = _children ?? Array.Empty<AutomationPeer>();
 
-            if (_childrenValid)
-                return children;
+            children = _childrenValid ? children : CreateChildrenCore();
+
+            return children
+                .Where(x => (x as ControlAutomationPeer)?.Owner.IsVisible ?? true)
+                .ToList();
+        }
+
+        private IReadOnlyList<AutomationPeer> CreateChildrenCore()
+        {
+            var children = _children ?? Array.Empty<AutomationPeer>();
 
             var newChildren = GetChildrenCore() ?? Array.Empty<AutomationPeer>();
 
@@ -78,7 +86,7 @@ namespace Avalonia.Automation.Peers
 
         protected virtual IReadOnlyList<AutomationPeer>? GetChildrenCore()
         {
-            var children = Owner.VisualChildren;
+            var children = OwnerVisualChildren();
 
             if (children.Count == 0)
                 return null;
@@ -87,13 +95,27 @@ namespace Avalonia.Automation.Peers
 
             foreach (var child in children)
             {
-                if (child is Control c && c.IsVisible)
+                if (child is Control c)
                 {
-                    result.Add(GetOrCreate(c));
+                    var peer = GetOrCreate(c);
+
+                    result.Add(peer);
                 }
             }
 
             return result;
+        }
+
+        private IReadOnlyList<Visual> OwnerVisualChildren()
+        {
+            var children = Owner.VisualChildren.AsEnumerable();
+
+            if (Owner.ContextMenu is not null)
+            {
+                children = children.Append(Owner.ContextMenu);
+            }
+
+            return children.ToList();
         }
 
         protected override AutomationPeer? GetLabeledByCore()
@@ -243,6 +265,10 @@ namespace Avalonia.Automation.Peers
             else if (e.Property == Visual.VisualParentProperty)
             {
                 InvalidateParent();
+            }
+            else if (e.Property == Control.ContextMenuProperty)
+            {
+                InvalidateChildren();
             }
         }
 

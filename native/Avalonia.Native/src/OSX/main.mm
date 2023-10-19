@@ -238,6 +238,19 @@ public:
         }
     };
     
+    virtual HRESULT CreateOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents* cb, IAvnWindow** ppv)  override
+    {
+        START_COM_CALL;
+        
+        @autoreleasepool
+        {
+            if(cb == nullptr || ppv == nullptr)
+                return E_POINTER;
+            *ppv = CreateAvnOverlay(overlayWindow, parentView, cb);
+            return S_OK;
+        }
+    };
+
     virtual HRESULT CreatePopup(IAvnWindowEvents* cb, IAvnPopup** ppv) override
     {
         START_COM_CALL;
@@ -251,7 +264,7 @@ public:
             return S_OK;
         }
     }
-    
+
     virtual HRESULT CreatePlatformThreadingInterface(IAvnPlatformThreadingInterface** ppv)  override
     {
         START_COM_CALL;
@@ -509,3 +522,31 @@ AvnPoint ConvertPointY (AvnPoint p)
     return p;
 }
 
+NSView* FindNSView(NSWindow* window, NSString* viewName)
+{
+    NSMutableArray *allSubviews     = [[NSMutableArray alloc] initWithObjects: nil];
+    NSMutableArray *currentSubviews = [[NSMutableArray alloc] initWithObjects: window.contentView, nil];
+    NSMutableArray *newSubviews     = [[NSMutableArray alloc] initWithObjects: window.contentView, nil];
+
+    while (newSubviews.count) {
+        [newSubviews removeAllObjects];
+
+        for (NSView *view in currentSubviews) {
+            for (NSView *subview in view.subviews) [newSubviews addObject:subview];
+        }
+
+        [currentSubviews removeAllObjects];
+        [currentSubviews addObjectsFromArray:newSubviews];
+        [allSubviews addObjectsFromArray:newSubviews];
+    }
+
+    for (NSView *view in allSubviews) {
+        // We go looking for this particular NSView which contains most of the visible area (except top ribbon and right properties)
+        if ([NSStringFromClass([view class]) isEqualToString: viewName]) {
+            NSLog(@"Found NSView: %@, tag: %ld, identifier: %@", view, view.tag, view.identifier);
+            return view;
+        }
+    }
+
+    return nil;
+}

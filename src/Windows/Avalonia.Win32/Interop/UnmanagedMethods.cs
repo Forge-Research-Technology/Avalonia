@@ -18,7 +18,7 @@ namespace Avalonia.Win32.Interop
     [SuppressMessage("Microsoft.StyleCop.CSharp.NamingRules", "SA1310:FieldNamesMustNotContainUnderscore", Justification = "Using Win32 naming for consistency.")]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:Elements must be documented", Justification = "Look in Win32 docs.")]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1602:Enumeration items must be documented", Justification = "Look in Win32 docs.")]
-    internal unsafe static class UnmanagedMethods
+    public unsafe static class UnmanagedMethods
     {
         public const int CW_USEDEFAULT = unchecked((int)0x80000000);
 
@@ -1551,7 +1551,10 @@ namespace Avalonia.Win32.Interop
         public static extern void SetProcessDpiAwareness(PROCESS_DPI_AWARENESS value);
 
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiAWarenessContext);
+        public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiAwarenessContext);
+        
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiAwarenessContext);
 
         [DllImport("shcore.dll")]
         public static extern long GetDpiForMonitor(IntPtr hmonitor, MONITOR_DPI_TYPE dpiType, out uint dpiX, out uint dpiY);
@@ -1987,7 +1990,7 @@ namespace Avalonia.Win32.Interop
         public const int CPS_CANCEL = 4;
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct CANDIDATEFORM
+        public struct CANDIDATEFORM
         {
             public int dwIndex;
             public int dwStyle;
@@ -1996,7 +1999,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct COMPOSITIONFORM
+        public struct COMPOSITIONFORM
         {
             public int dwStyle;
             public POINT ptCurrentPos;
@@ -2067,7 +2070,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct MARGINS
+        public struct MARGINS
         {
             public int cxLeftWidth;
             public int cxRightWidth;
@@ -2083,7 +2086,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct MONITORINFO
+        public struct MONITORINFO
         {
             public int cbSize;
             public RECT rcMonitor;
@@ -2465,7 +2468,7 @@ namespace Avalonia.Win32.Interop
     }
 
     [Flags]
-    internal enum PixelFormatDescriptorFlags : uint
+    public enum PixelFormatDescriptorFlags : uint
     {
         PFD_DOUBLEBUFFER = 0x00000001,
         PFD_STEREO = 0x00000002,
@@ -2487,7 +2490,7 @@ namespace Avalonia.Win32.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct PixelFormatDescriptor
+    public struct PixelFormatDescriptor
     {
         public ushort Size;
         public ushort Version;
@@ -2517,7 +2520,7 @@ namespace Avalonia.Win32.Interop
         public uint DamageMask;
     }
 
-    internal enum NIM : uint
+    public enum NIM : uint
     {
         ADD = 0x00000000,
         MODIFY = 0x00000001,
@@ -2527,7 +2530,7 @@ namespace Avalonia.Win32.Interop
     }
 
     [Flags]
-    internal enum NIF : uint
+    public enum NIF : uint
     {
         MESSAGE = 0x00000001,
         ICON = 0x00000002,
@@ -2540,7 +2543,7 @@ namespace Avalonia.Win32.Interop
     }
 
     [Flags]
-    internal enum NIIF : uint
+    public enum NIIF : uint
     {
         NONE = 0x00000000,
         INFO = 0x00000001,
@@ -2554,7 +2557,7 @@ namespace Avalonia.Win32.Interop
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    internal class NOTIFYICONDATA
+    public class NOTIFYICONDATA
     {
         public int cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
         public IntPtr hWnd;
