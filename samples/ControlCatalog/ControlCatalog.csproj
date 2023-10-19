@@ -16,6 +16,13 @@
     <AvaloniaResource Include="Assets\Fonts\*" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Assets\Duplication-128.png" />
+    <None Remove="Assets\Duplication-32.png" />
+    <None Remove="Assets\Duplication-48.png" />
+    <None Remove="Assets\Duplication-64.png" />
+    <None Remove="Assets\Duplication-96.png" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\SourceSansPro-Bold.ttf" />
     <EmbeddedResource Include="Assets\Fonts\SourceSansPro-BoldItalic.ttf" />
     <EmbeddedResource Include="Assets\Fonts\SourceSansPro-Italic.ttf" />
