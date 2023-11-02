@@ -18,6 +18,62 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
+
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
+        NSLog(@"MONITOR mouseMoved START");
+
+        if ([event window] != this->parentWindow)
+        {
+            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            return event;
+        }
+
+        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint.
+        // This fixes cursor overrides done by PowerPoint in the NSResponder chain.
+        // We add it here in WindowOverlayImpl because we only need to monitor the overlay for events and not any other Avalonia window.
+
+        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
+        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto point = [View translateLocalPoint:avnPoint];
+
+        auto hitTest = this->BaseEvents->HitTest(point);
+
+        if (hitTest == false)
+        {
+            NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            return event;
+        }
+        else
+        {
+            NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            [View mouseMoved:event];
+            return nil;
+        }
+    }];
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown handler:^NSEvent * (NSEvent * event) {
+        NSLog(@"MONITOR mouseDown START");
+
+        if ([event window] != this->parentWindow)
+        {
+            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            return event;
+        }
+
+        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
+        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto point = [View translateLocalPoint:avnPoint];
+
+        auto hitTest = this->BaseEvents->HitTest(point);
+
+        if (hitTest == false)
+        {
+            this->BaseEvents->OnSlideMouseActivate(point);
+        }
+
+        return event;
+    }];
 }
 
 bool WindowOverlayImpl::IsOverlay()

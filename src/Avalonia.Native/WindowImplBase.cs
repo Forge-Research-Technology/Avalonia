@@ -328,6 +328,11 @@ namespace Avalonia.Native
                 _parent.FirstResponderChanged?.Invoke(responder);
 
             }
+
+            void IAvnWindowBaseEvents.OnSlideMouseActivate(AvnPoint p)
+            {
+                Console.WriteLine($"OnSlideMouseActivate: {p.X} {p.Y}");
+            }
         }
        
         public void Activate()
