@@ -185,6 +185,7 @@ namespace Avalonia.Native
         public Action<Size, WindowResizeReason> Resized { get; set; }
         public Action Closed { get; set; }
         public Action<string> FirstResponderChanged { get; set; }
+        public Action<Point> OnSlideMouseActivate { get; set; }
         public Func<Point, bool> ShouldPassThrough { get; set; }
         public IMouseDevice MouseDevice => _mouse;
         public abstract IPopupImpl CreatePopup();
@@ -332,6 +333,9 @@ namespace Avalonia.Native
             void IAvnWindowBaseEvents.OnSlideMouseActivate(AvnPoint p)
             {
                 Console.WriteLine($"OnSlideMouseActivate: {p.X} {p.Y}");
+
+                Point point = p.ToAvaloniaPoint();
+                _parent.OnSlideMouseActivate?.Invoke(point);
             }
         }
        
