@@ -21,11 +21,11 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
-        NSLog(@"MONITOR mouseMoved START");
+        //NSLog(@"MONITOR mouseMoved START");
 
         if ([event window] != this->parentWindow)
         {
-            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            //NSLog(@"MONITOR overlay=FALSE -> normal chain");
             return event;
         }
 
@@ -39,14 +39,24 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         auto hitTest = this->BaseEvents->HitTest(point);
 
+        static int tries = 0;
+
         if (hitTest == false)
         {
-            NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            tries = 0;
             return event;
         }
         else
         {
-            NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            //NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            if (tries < 10)
+            {
+                // We do this multiple times because we compete with NSTrackingArea
+                // We must ensure that we have the final word for the cursor set
+                UpdateCursor();
+                tries++;
+            }
             [View mouseMoved:event];
             return nil;
         }
