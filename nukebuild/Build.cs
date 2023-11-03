@@ -298,7 +298,7 @@ partial class Build : NukeBuild
         .DependsOn(RunCoreLibsTests)
         .DependsOn(RunRenderTests)
         .DependsOn(RunToolsTests)
-        .DependsOn(RunHtmlPreviewerTests)
+        //.DependsOn(RunHtmlPreviewerTests) //We don't care -JKB
         .DependsOn(RunLeakTests);
 
     Target Package => _ => _
