@@ -112,11 +112,11 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 type = KeyUp;
             }
 
-            handled = this->BaseEvents->RawKeyEvent(type, timestamp, modifiers, key);
+            handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
         }
 
         NSLog(@"Monitor handled = %d", handled);
-        
+
         if (handled)
         {
             return nil;
