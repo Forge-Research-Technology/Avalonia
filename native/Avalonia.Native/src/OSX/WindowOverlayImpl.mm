@@ -29,34 +29,35 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             return event;
         }
 
-        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint.
-        // This fixes cursor overrides done by PowerPoint in the NSResponder chain.
-        // We add it here in WindowOverlayImpl because we only need to monitor the overlay for events and not any other Avalonia window.
+        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint
+        // This fixes cursor overrides done by PowerPoint in the NSResponder chain
+        // We only need it here in WindowOverlayImpl and not any other Avalonia window
 
         auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
         auto avnPoint = [AvnView toAvnPoint:localPoint];
         auto point = [View translateLocalPoint:avnPoint];
 
         auto hitTest = this->BaseEvents->HitTest(point);
-
-        static int tries = 0;
+        static bool shouldUpdateCursor = false;
 
         if (hitTest == false)
         {
             //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
-            tries = 0;
+            shouldUpdateCursor = true;
             return event;
         }
         else
         {
             //NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
-            if (tries < 10)
+            if (shouldUpdateCursor)
             {
-                // We do this multiple times because we compete with NSTrackingArea
-                // We must ensure that we have the final word for the cursor set
+                // There are times when PowerPoint's NSTrackingArea fires after Avalonia's NSTrackingArea
+                // We must ensure that we have the final word for the cursor set by forcing a second update of the cursor
+
                 UpdateCursor();
-                tries++;
+                shouldUpdateCursor = false;
             }
+
             [View mouseMoved:event];
             return nil;
         }
