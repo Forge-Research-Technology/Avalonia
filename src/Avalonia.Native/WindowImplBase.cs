@@ -187,6 +187,7 @@ namespace Avalonia.Native
         public Action<string> FirstResponderChanged { get; set; }
         public Action<Point> OnSlideMouseActivate { get; set; }
         public Func<Point, bool> ShouldPassThrough { get; set; }
+        public Func<RawKeyEventType, Key, RawInputModifiers, bool> MonitorKeyEvent { get; set; }
         public IMouseDevice MouseDevice => _mouse;
         public abstract IPopupImpl CreatePopup();
 
@@ -319,23 +320,36 @@ namespace Avalonia.Native
                     result = _parent._inputRoot.InputHitTest(point) is not null;
                 }
 
-                Console.WriteLine($"HitTest {result} {p.X} {p.Y}");
+                System.Diagnostics.Debug.WriteLine($"HitTest {result} {p.X} {p.Y}");
                 return result.AsComBool();
             }
 
             void IAvnWindowBaseEvents.LogFirstResponder(string responder)
             {
-                Console.WriteLine($"Got first responder: {responder}");
+                System.Diagnostics.Debug.WriteLine($"Got first responder: {responder}");
                 _parent.FirstResponderChanged?.Invoke(responder);
 
             }
 
             void IAvnWindowBaseEvents.OnSlideMouseActivate(AvnPoint p)
             {
-                Console.WriteLine($"OnSlideMouseActivate: {p.X} {p.Y}");
+                System.Diagnostics.Debug.WriteLine($"OnSlideMouseActivate: {p.X} {p.Y}");
 
                 Point point = p.ToAvaloniaPoint();
                 _parent.OnSlideMouseActivate?.Invoke(point);
+            }
+
+            int IAvnWindowBaseEvents.MonitorKeyEvent(AvnRawKeyEventType type, ulong timeStamp, AvnInputModifiers modifiers, uint key)
+            {
+                bool result = false;
+
+                if (_parent.MonitorKeyEvent is not null)
+                {
+                    result = _parent.MonitorKeyEvent((RawKeyEventType)type, (Key)key, (RawInputModifiers)modifiers);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"MonitorKeyEvent: {result}");
+                return result.AsComBool();
             }
         }
        
