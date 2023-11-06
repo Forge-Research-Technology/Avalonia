@@ -85,6 +85,45 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         return event;
     }];
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp handler:^NSEvent * (NSEvent * event) {
+        bool handled = false;
+        NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+
+        if (flags == NSCommandKeyMask)
+        {
+            // This code is adapted from AvnView
+            // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
+
+            NSLog(@"MONITOR keyDown|keyUp CMD + %d, type %d", [event keyCode], [event type]);
+
+            auto key = s_KeyMap[[event keyCode]];
+
+            uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
+            AvnInputModifiers modifiers = Windows; // Windows is equivalent to CMD
+            AvnRawKeyEventType type;
+            
+            if ([event type] == NSEventTypeKeyDown)
+            {
+                type = KeyDown;
+            }
+            else
+            {
+                type = KeyUp;
+            }
+
+            handled = this->BaseEvents->RawKeyEvent(type, timestamp, modifiers, key);
+        }
+
+        NSLog(@"Monitor handled = %d", handled);
+        
+        if (handled)
+        {
+            return nil;
+        }
+
+        return event;
+    }];
 }
 
 bool WindowOverlayImpl::IsOverlay()
