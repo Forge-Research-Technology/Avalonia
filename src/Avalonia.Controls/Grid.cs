@@ -1992,7 +1992,7 @@ namespace Avalonia.Controls
                 // Note that if we return to Phase2, at least one *-def will have been
                 // resolved.  This guarantees we don't run Phase2+3 infinitely often.
                 runPhase2and3 = false;
-                if (starCount == 0 && takenSize < finalSize)
+                if (starCount == 0 && MathUtilities.LessThan(takenSize, finalSize))
                 {
                     // if no *-defs remain and we haven't allocated all the space, reconsider the defs
                     // resolved as 'min'.   Their allocation can be increased to make up the gap.
@@ -2214,9 +2214,9 @@ namespace Avalonia.Controls
         /// </summary>
         private static bool? Choose(double minRatio, double maxRatio, double proportion)
         {
-            if (minRatio < proportion)
+            if (MathUtilities.LessThan(minRatio, proportion))
             {
-                if (maxRatio > proportion)
+                if (MathUtilities.GreaterThan(maxRatio, proportion))
                 {
                     // compare proportion/minRatio : maxRatio/proportion, but
                     // do it carefully to avoid floating-point overflow or underflow
