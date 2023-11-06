@@ -21,32 +21,43 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
-        NSLog(@"MONITOR mouseMoved START");
+        //NSLog(@"MONITOR mouseMoved START");
 
         if ([event window] != this->parentWindow)
         {
-            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            //NSLog(@"MONITOR overlay=FALSE -> normal chain");
             return event;
         }
 
-        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint.
-        // This fixes cursor overrides done by PowerPoint in the NSResponder chain.
-        // We add it here in WindowOverlayImpl because we only need to monitor the overlay for events and not any other Avalonia window.
+        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint
+        // This fixes cursor overrides done by PowerPoint in the NSResponder chain
+        // We only need it here in WindowOverlayImpl and not any other Avalonia window
 
         auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
         auto avnPoint = [AvnView toAvnPoint:localPoint];
         auto point = [View translateLocalPoint:avnPoint];
 
         auto hitTest = this->BaseEvents->HitTest(point);
+        static bool shouldUpdateCursor = false;
 
         if (hitTest == false)
         {
-            NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            shouldUpdateCursor = true;
             return event;
         }
         else
         {
-            NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            //NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            if (shouldUpdateCursor)
+            {
+                // There are times when PowerPoint's NSTrackingArea fires after Avalonia's NSTrackingArea
+                // We must ensure that we have the final word for the cursor set by forcing a second update of the cursor
+
+                UpdateCursor();
+                shouldUpdateCursor = false;
+            }
+
             [View mouseMoved:event];
             return nil;
         }
