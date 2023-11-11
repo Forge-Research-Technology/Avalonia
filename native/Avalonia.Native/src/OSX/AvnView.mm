@@ -171,33 +171,6 @@
 
         _parent->BaseEvents->Resized(AvnSize{newSize.width, newSize.height}, reason);
     }
-
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
-        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint
-        // This fixes cursor overrides done by PowerPoint in the NSResponder chain
-
-        if (_parent == nullptr || _parent->BaseEvents == nullptr)
-        {
-            // Sometimes _parent or BaseEvents is null, we should let the event go through in that case
-            return event;
-        }
-
-        auto localPoint = [self convertPoint:[event locationInWindow] toView:self];
-        auto avnPoint = [AvnView toAvnPoint:localPoint];
-        auto point = [self translateLocalPoint:avnPoint];
-
-        auto hitTest = _parent->BaseEvents->HitTest(point);
-
-        if (hitTest == false)
-        {
-            return event;
-        }
-        else
-        {
-            [self mouseEvent:event withType:Move];
-            return nil;
-        }
-    }];
 }
 
 - (void)updateLayer

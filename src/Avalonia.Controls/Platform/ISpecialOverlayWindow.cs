@@ -1,4 +1,6 @@
 ﻿using System;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 
 namespace Avalonia.Platform
 {
@@ -6,6 +8,10 @@ namespace Avalonia.Platform
     {
         public Action<string> FirstResponderChanged { get; set; }
 
+        public Action<Point> OnSlideMouseActivate { get; set; }
+
         public Func<Point, bool> ShouldPassThrough { get; set; }
+
+        public Func<RawKeyEventType, Key, RawInputModifiers, bool> MonitorKeyEvent { get; set; }
     }
 }

@@ -604,6 +604,8 @@ interface IAvnWindowBaseEvents : IUnknown
      IAvnAutomationPeer* GetAutomationPeer();
      bool HitTest(AvnPoint point);
      void LogFirstResponder([const] char* text);
+     void OnSlideMouseActivate(AvnPoint point);
+     bool MonitorKeyEvent(AvnRawKeyEventType type, u_int64_t timeStamp, AvnInputModifiers modifiers, uint key);
 }
 
 [uuid(1ae178ee-1fcc-447f-b6dd-b7bb727f934c)]

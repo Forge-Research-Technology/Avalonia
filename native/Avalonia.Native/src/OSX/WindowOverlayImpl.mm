@@ -18,6 +18,112 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
+
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
+        //NSLog(@"MONITOR mouseMoved START");
+
+        if ([event window] != this->parentWindow)
+        {
+            //NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            return event;
+        }
+
+        // We add our own event monitor in order to be able to catch and override all mouse events before PowerPoint
+        // This fixes cursor overrides done by PowerPoint in the NSResponder chain
+        // We only need it here in WindowOverlayImpl and not any other Avalonia window
+
+        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
+        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto point = [View translateLocalPoint:avnPoint];
+
+        auto hitTest = this->BaseEvents->HitTest(point);
+        static bool shouldUpdateCursor = false;
+
+        if (hitTest == false)
+        {
+            //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
+            shouldUpdateCursor = true;
+            return event;
+        }
+        else
+        {
+            //NSLog(@"MONITOR overlay=TRUE hitTest=TRUE -> force event");
+            if (shouldUpdateCursor)
+            {
+                // There are times when PowerPoint's NSTrackingArea fires after Avalonia's NSTrackingArea
+                // We must ensure that we have the final word for the cursor set by forcing a second update of the cursor
+
+                UpdateCursor();
+                shouldUpdateCursor = false;
+            }
+
+            [View mouseMoved:event];
+            return nil;
+        }
+    }];
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown handler:^NSEvent * (NSEvent * event) {
+        NSLog(@"MONITOR mouseDown START");
+
+        if ([event window] != this->parentWindow)
+        {
+            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            return event;
+        }
+
+        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
+        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto point = [View translateLocalPoint:avnPoint];
+
+        auto hitTest = this->BaseEvents->HitTest(point);
+
+        if (hitTest == false)
+        {
+            this->BaseEvents->OnSlideMouseActivate(point);
+        }
+
+        return event;
+    }];
+
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp handler:^NSEvent * (NSEvent * event) {
+        bool handled = false;
+        NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+
+        if (flags == NSCommandKeyMask)
+        {
+            // This code is adapted from AvnView
+            // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
+
+            NSLog(@"MONITOR keyDown|keyUp CMD + %d, type %d", [event keyCode], [event type]);
+
+            auto key = s_KeyMap[[event keyCode]];
+
+            uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
+            AvnInputModifiers modifiers = Windows; // Windows is equivalent to CMD
+            AvnRawKeyEventType type;
+            
+            if ([event type] == NSEventTypeKeyDown)
+            {
+                type = KeyDown;
+            }
+            else
+            {
+                type = KeyUp;
+            }
+
+            handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
+        }
+
+        NSLog(@"Monitor handled = %d", handled);
+
+        if (handled)
+        {
+            return nil;
+        }
+
+        return event;
+    }];
 }
 
 bool WindowOverlayImpl::IsOverlay()
