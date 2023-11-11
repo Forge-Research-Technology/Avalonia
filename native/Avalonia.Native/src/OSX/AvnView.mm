@@ -42,16 +42,7 @@
 - (void) updateRenderTarget
 {
     if(_currentRenderTarget) {
-        if (_parent->IsOverlay())
-        {
-            // Powerpoint overlay needs to go without scale factor
-            [_currentRenderTarget resize:_lastPixelSize withScale:1];
-        }
-        else
-        {
-            // Normal views need scale factor in order to avoid fuzzy fonts
-            [_currentRenderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
-        }
+        [_currentRenderTarget resize:_lastPixelSize withScale:static_cast<float>([[self window] backingScaleFactor])];
         [self setNeedsDisplayInRect:[self frame]];
     }
 }
@@ -155,11 +146,6 @@
     _parent->UpdateCursor();
 
     auto fsize = [self convertSizeToBacking: [self frame].size];
-    if (_parent->IsOverlay())
-    {
-        // Powerpoint overlay needs to go without scale factor
-        fsize = [self frame].size;
-    }
 
     if(_lastPixelSize.Width != (int)fsize.width || _lastPixelSize.Height != (int)fsize.height)
     {
@@ -215,11 +201,6 @@
 - (void) viewDidChangeBackingProperties
 {
     auto fsize = [self convertSizeToBacking: [self frame].size];
-    if (_parent->IsOverlay())
-    {
-        // Powerpoint overlay needs to go without scale factor
-        fsize = [self frame].size;
-    }
 
     _lastPixelSize.Width = (int)fsize.width;
     _lastPixelSize.Height = (int)fsize.height;
