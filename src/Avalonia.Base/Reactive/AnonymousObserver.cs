@@ -10,7 +10,7 @@ namespace Avalonia.Reactive;
 /// <typeparam name="T">The type of the elements in the sequence.</typeparam>
 public class AnonymousObserver<T> : IObserver<T>
 {
-    private static readonly Action<Exception> ThrowsOnError = ex => throw ex;
+    private static readonly Action<Exception> ThrowsOnError = ex => throw new Exception("Observable crashed", ex);
     private static readonly Action NoOpCompleted = () => { };  
     private readonly Action<T> _onNext;
     private readonly Action<Exception> _onError;
