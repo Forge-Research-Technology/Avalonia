@@ -98,6 +98,13 @@ namespace Avalonia.Win32
         public static void Initialize(Win32PlatformOptions options)
         {
             s_options = options;
+
+
+            options.ShutdownCancellationToken?.Register(() =>
+            {
+                s_instance.Destroy();
+            });
+
             var renderTimer = options.ShouldRenderOnUIThread ? new UiThreadRenderTimer(60) : new DefaultRenderTimer(60);
 
             AvaloniaLocator.CurrentMutable
@@ -143,7 +150,16 @@ namespace Avalonia.Win32
             
             s_compositor = new Compositor( platformGraphics);
         }
-        
+
+        private void Destroy()
+        {
+            if (_hwnd != IntPtr.Zero)
+            {
+                DestroyWindow(_hwnd);
+                _hwnd = IntPtr.Zero;
+            }
+        }
+
         public event EventHandler<ShutdownRequestedEventArgs>? ShutdownRequested;
 
         [SuppressMessage("Microsoft.StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation", Justification = "Using Win32 naming for consistency.")]
@@ -219,6 +235,7 @@ namespace Avalonia.Win32
             {
                 throw new Win32Exception();
             }
+
         }
 
         public ITrayIconImpl CreateTrayIcon()
