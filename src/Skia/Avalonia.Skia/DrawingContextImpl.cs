@@ -23,6 +23,7 @@ namespace Avalonia.Skia
         private readonly Vector _dpi;
         private readonly Stack<PaintWrapper> _maskStack = new();
         private readonly Stack<double> _opacityStack = new();
+        private readonly Stack<RenderOptions> _renderOptionsStack = new();
         private readonly Matrix? _postTransform;
         private double _currentOpacity = 1.0f;
         private readonly bool _disableSubpixelTextRendering;
@@ -632,6 +633,21 @@ namespace Avalonia.Skia
             }
 
             _currentOpacity = _opacityStack.Pop();
+        }
+
+        /// <inheritdoc />
+        public void PushRenderOptions(RenderOptions renderOptions)
+        {
+            CheckLease();
+
+            _renderOptionsStack.Push(RenderOptions);
+
+            RenderOptions = RenderOptions.MergeWith(renderOptions);
+        }
+
+        public void PopRenderOptions()
+        {
+            RenderOptions = _renderOptionsStack.Pop();
         }
 
         /// <inheritdoc />
@@ -1247,31 +1263,8 @@ namespace Avalonia.Skia
             // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/paths/dots
             // TODO: Still something is off, dashes are now present, but don't look the same as D2D ones.
 
-            switch (pen.LineCap)
-            {
-                case PenLineCap.Round:
-                    paint.StrokeCap = SKStrokeCap.Round;
-                    break;
-                case PenLineCap.Square:
-                    paint.StrokeCap = SKStrokeCap.Square;
-                    break;
-                default:
-                    paint.StrokeCap = SKStrokeCap.Butt;
-                    break;
-            }
-
-            switch (pen.LineJoin)
-            {
-                case PenLineJoin.Miter:
-                    paint.StrokeJoin = SKStrokeJoin.Miter;
-                    break;
-                case PenLineJoin.Round:
-                    paint.StrokeJoin = SKStrokeJoin.Round;
-                    break;
-                default:
-                    paint.StrokeJoin = SKStrokeJoin.Bevel;
-                    break;
-            }
+            paint.StrokeCap = pen.LineCap.ToSKStrokeCap();
+            paint.StrokeJoin = pen.LineJoin.ToSKStrokeJoin();
 
             paint.StrokeMiter = (float) pen.MiterLimit;
 

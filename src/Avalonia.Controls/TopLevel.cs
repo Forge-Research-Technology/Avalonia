@@ -266,7 +266,9 @@ namespace Avalonia.Controls
                         var keyEvent = new KeyEventArgs()
                         {
                             KeyModifiers = (KeyModifiers)rawKeyEventArgs.Modifiers,
-                            Key = rawKeyEventArgs.Key
+                            Key = rawKeyEventArgs.Key,
+                            PhysicalKey = rawKeyEventArgs.PhysicalKey,
+                            KeySymbol = rawKeyEventArgs.KeySymbol
                         };
 
                         backRequested = keymap.Any( key => key.Matches(keyEvent));
@@ -307,8 +309,8 @@ namespace Avalonia.Controls
         /// </summary>
         public Size ClientSize
         {
-            get { return _clientSize; }
-            protected set { SetAndRaise(ClientSizeProperty, ref _clientSize, value); }
+            get => _clientSize;
+            protected set => SetAndRaise(ClientSizeProperty, ref _clientSize, value);
         }
 
         /// <summary>
@@ -316,8 +318,8 @@ namespace Avalonia.Controls
         /// </summary>
         public Size? FrameSize
         {
-            get { return _frameSize; }
-            protected set { SetAndRaise(FrameSizeProperty, ref _frameSize, value); }
+            get => _frameSize;
+            protected set => SetAndRaise(FrameSizeProperty, ref _frameSize, value);
         }
 
         /// <summary>
@@ -328,8 +330,8 @@ namespace Avalonia.Controls
         /// </summary>
         public IReadOnlyList<WindowTransparencyLevel> TransparencyLevelHint
         {
-            get { return GetValue(TransparencyLevelHintProperty); }
-            set { SetValue(TransparencyLevelHintProperty, value); }
+            get => GetValue(TransparencyLevelHintProperty);
+            set => SetValue(TransparencyLevelHintProperty, value);
         }
 
         /// <summary>
@@ -363,8 +365,8 @@ namespace Avalonia.Controls
         /// </summary>
         public event EventHandler<RoutedEventArgs> BackRequested
         {
-            add { AddHandler(BackRequestedEvent, value); }
-            remove { RemoveHandler(BackRequestedEvent, value); }
+            add => AddHandler(BackRequestedEvent, value);
+            remove => RemoveHandler(BackRequestedEvent, value);
         }
 
         internal ILayoutManager LayoutManager
@@ -437,8 +439,8 @@ namespace Avalonia.Controls
         /// <inheritdoc/>
         IInputElement? IInputRoot.PointerOverElement
         {
-            get { return GetValue(PointerOverElementProperty); }
-            set { SetValue(PointerOverElementProperty, value); }
+            get => GetValue(PointerOverElementProperty);
+            set => SetValue(PointerOverElementProperty, value);
         }
 
         /// <summary>
@@ -446,8 +448,8 @@ namespace Avalonia.Controls
         /// </summary>
         bool IInputRoot.ShowAccessKeys
         {
-            get { return GetValue(AccessText.ShowAccessKeyProperty); }
-            set { SetValue(AccessText.ShowAccessKeyProperty, value); }
+            get => GetValue(AccessText.ShowAccessKeyProperty);
+            set => SetValue(AccessText.ShowAccessKeyProperty, value);
         }
 
         /// <summary>
