@@ -97,8 +97,9 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
             NSLog(@"MONITOR keyDown|keyUp CMD + %d, type %d", [event keyCode], [event type]);
 
-            auto key = s_KeyMap[[event keyCode]];
-
+            auto scanCode = [event keyCode];
+            auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
+            
             uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
             AvnInputModifiers modifiers = Windows; // Windows is equivalent to CMD
             AvnRawKeyEventType type;
