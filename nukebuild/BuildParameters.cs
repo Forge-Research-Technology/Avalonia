@@ -34,7 +34,6 @@ public partial class Build
         public string Configuration { get; }
         public bool SkipTests { get; }
         public bool SkipPreviewer {get;}
-        public string MainRepo { get; }
         public string MasterBranch { get; }
         public string RepositoryName { get; }
         public string RepositoryBranch { get; }
@@ -46,7 +45,7 @@ public partial class Build
         public bool IsRunningOnWindows { get; }
         public bool IsRunningOnAzure { get; }
         public bool IsPullRequest { get; }
-        public bool IsMainRepo { get; }
+        public bool IsMainRepo { get; } = true;
         public bool IsMasterBranch { get; }
         public bool IsReleaseBranch { get; }
         public bool IsReleasable { get; }
@@ -76,7 +75,6 @@ public partial class Build
             SkipPreviewer = b.SkipPreviewer;
 
             // CONFIGURATION
-            MainRepo = "https://github.com/AvaloniaUI/Avalonia";
             MasterBranch = "refs/heads/main";
             ReleaseBranchRegex = new("^refs/heads/release/[1-9]+$");
 
@@ -96,11 +94,8 @@ public partial class Build
                 RepositoryName = AzurePipelines.Instance.RepositoryUri;
                 RepositoryBranch = AzurePipelines.Instance.SourceBranch;
                 IsPullRequest = AzurePipelines.Instance.PullRequestId.HasValue;
-                IsMainRepo = StringComparer.OrdinalIgnoreCase.Equals(MainRepo, AzurePipelines.Instance.RepositoryUri);
             }
-            IsMainRepo =
-                StringComparer.OrdinalIgnoreCase.Equals(MainRepo,
-                    RepositoryName);
+
             IsMasterBranch = StringComparer.OrdinalIgnoreCase.Equals(MasterBranch,
                 RepositoryBranch);
             IsReleaseBranch = RepositoryBranch is not null && ReleaseBranchRegex.IsMatch(RepositoryBranch);
