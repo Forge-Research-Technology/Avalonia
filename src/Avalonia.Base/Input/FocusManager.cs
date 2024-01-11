@@ -41,6 +41,8 @@ namespace Avalonia.Input
         /// </summary>
         public IInputElement? GetFocusedElement() => Current;
 
+        public StyledElement? Scope => _focusRoot;
+
         /// <summary>
         /// Focuses a control.
         /// </summary>
