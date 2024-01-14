@@ -56,12 +56,12 @@ namespace Avalonia.Controls.Documents
             set => SetValue(ChildProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
+        public override void BuildTextRun(IList<TextRun> textRuns)
         {
             textRuns.Add(new EmbeddedControlRun(Child, CreateTextRunProperties()));
         }
 
-        internal override void AppendText(StringBuilder stringBuilder)
+        public override void AppendText(StringBuilder stringBuilder)
         {
         }
 
