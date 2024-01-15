@@ -68,7 +68,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         if ([event window] != this->parentWindow)
         {
-            NSLog(@"MONITOR overlay=FALSE -> normal chain");
+            NSLog(@"MONITOR window=FALSE overlay=FALSE -> normal chain");
             return event;
         }
 
@@ -76,8 +76,14 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         auto avnPoint = [AvnView toAvnPoint:localPoint];
         auto point = [View translateLocalPoint:avnPoint];
 
-        auto hitTest = this->BaseEvents->HitTest(point);
+        if (point.Y < 0)
+        {
+            // Ribbon/title bar above our view
+            NSLog(@"MONITOR window=TRUE overlay=FALSE -> ribbon/title bar");
+            return event;
+        }
 
+        auto hitTest = this->BaseEvents->HitTest(point);
         if (hitTest == false)
         {
             this->BaseEvents->OnSlideMouseActivate(point);

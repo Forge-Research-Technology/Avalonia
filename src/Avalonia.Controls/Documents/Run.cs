@@ -50,7 +50,7 @@ namespace Avalonia.Controls.Documents
             set => SetValue(TextProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
+        public override void BuildTextRun(IList<TextRun> textRuns)
         {
             var text = Text ?? "";
 
@@ -66,7 +66,7 @@ namespace Avalonia.Controls.Documents
             textRuns.Add(textCharacters);
         }
 
-        internal override void AppendText(StringBuilder stringBuilder)
+        public override void AppendText(StringBuilder stringBuilder)
         {
             var text = Text ?? "";
 
