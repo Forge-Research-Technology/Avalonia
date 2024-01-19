@@ -10,6 +10,7 @@ class WindowOverlayImpl : public virtual WindowImpl
 private:
     NSWindow* parentWindow;
     NSView* parentView;
+    NSView* canvasView;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)

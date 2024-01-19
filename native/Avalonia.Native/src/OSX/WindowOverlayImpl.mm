@@ -3,6 +3,7 @@
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
+    this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
 
     [this->parentView addSubview:View];
 
@@ -145,11 +146,19 @@ HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
             return E_POINTER;
         }
 
+        auto canvasOriginPoint = [canvasView bounds].origin;
+        // NSLog(@"PointToClient canvasView bounds %@", NSStringFromPoint([canvasView bounds].origin));
+
+        // We need to take into consideration the canvas scrollbars eg. when zoomed in
+        point.X -= canvasOriginPoint.x; // 0 when no scrollbars
+        point.Y -= canvasOriginPoint.y; // 0 when no scrollbars
+
         point = ConvertPointY(point);
         NSRect convertRect = [parentWindow convertRectFromScreen:NSMakeRect(point.X, point.Y, 0.0, 0.0)];
 
         auto viewPoint = NSMakePoint(convertRect.origin.x, convertRect.origin.y);
 
+        // NSLog(@"PointToClient %@", NSStringFromPoint(viewPoint));
         *ret = [View translateLocalPoint:ToAvnPoint(viewPoint)];
 
         return S_OK;
