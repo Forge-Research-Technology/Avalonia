@@ -626,5 +626,10 @@ namespace Avalonia.Native
         }
 
         public IPlatformHandle Handle { get; private set; }
+        
+        public PixelPoint PPTClipViewOrigin
+        {
+            get => _native?.PPTClipViewOrigin.ToAvaloniaPixelPoint() ?? default;
+        }
     }
 }

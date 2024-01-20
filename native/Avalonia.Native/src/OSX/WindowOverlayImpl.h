@@ -21,6 +21,7 @@ public:
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT GetPosition(AvnPoint *ret) override;
+    virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
 };
 
 #endif

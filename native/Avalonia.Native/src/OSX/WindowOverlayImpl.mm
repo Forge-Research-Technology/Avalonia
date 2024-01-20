@@ -146,13 +146,6 @@ HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
             return E_POINTER;
         }
 
-        auto canvasOriginPoint = [canvasView bounds].origin;
-        // NSLog(@"PointToClient canvasView bounds %@", NSStringFromPoint([canvasView bounds].origin));
-
-        // We need to take into consideration the canvas scrollbars eg. when zoomed in
-        point.X -= canvasOriginPoint.x; // 0 when no scrollbars
-        point.Y -= canvasOriginPoint.y; // 0 when no scrollbars
-
         point = ConvertPointY(point);
         NSRect convertRect = [parentWindow convertRectFromScreen:NSMakeRect(point.X, point.Y, 0.0, 0.0)];
 
@@ -203,6 +196,31 @@ HRESULT WindowOverlayImpl::PointToScreen(AvnPoint point, AvnPoint *ret) {
 
         auto cocoaScreenPoint = NSPointFromCGPoint(NSMakePoint(convertRect.origin.x, convertRect.origin.y));
         *ret = ConvertPointY(ToAvnPoint(cocoaScreenPoint));
+
+        return S_OK;
+    }
+}
+
+HRESULT WindowOverlayImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
+    // We need this whenever scrollbars are present inside PPTClipView.
+    // This is a fix for PowerPoint's builtin PointsToScreenPixelsX returning
+    // the same value regardless of scroll position on Macos.
+
+    START_COM_CALL;
+
+    @autoreleasepool {
+        if (ret == nullptr) {
+            return E_POINTER;
+        }
+
+        if (this->canvasView == nullptr) {
+            NSLog(@"PPTClipView not found!");
+            return E_FAIL;
+        }
+
+        auto canvasOriginPoint = [canvasView bounds].origin;
+        ret->X = canvasOriginPoint.x;
+        ret->Y = canvasOriginPoint.y;
 
         return S_OK;
     }
