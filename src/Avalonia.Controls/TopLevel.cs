@@ -153,6 +153,20 @@ namespace Avalonia.Controls
                     }
                 }
             });
+
+            PointerOverElementProperty.Changed.AddClassHandler<TopLevel>((topLevel, e) =>
+            {
+                if (e.OldValue is InputElement oldInputElement)
+                {
+                    oldInputElement.PropertyChanged -= topLevel.PointerOverElementOnPropertyChanged;
+                }
+
+                if (e.NewValue is InputElement newInputElement)
+                {
+                    topLevel.PlatformImpl?.SetCursor(newInputElement.Cursor?.PlatformImpl);
+                    newInputElement.PropertyChanged += topLevel.PointerOverElementOnPropertyChanged;
+                }
+            });
         }
 
         /// <summary>
@@ -757,6 +771,14 @@ namespace Avalonia.Controls
                     "PlatformImpl is null, couldn't handle input.");
             }
 
+        }
+
+        private void PointerOverElementOnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == CursorProperty && sender is InputElement inputElement)
+            {
+                PlatformImpl?.SetCursor(inputElement.Cursor?.PlatformImpl);
+            }
         }
 
         private void GlobalActualThemeVariantChanged(object? sender, EventArgs e)
