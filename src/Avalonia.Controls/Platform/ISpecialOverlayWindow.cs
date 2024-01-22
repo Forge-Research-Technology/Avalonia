@@ -13,5 +13,7 @@ namespace Avalonia.Platform
         public Func<Point, bool> ShouldPassThrough { get; set; }
 
         public Func<RawKeyEventType, Key, RawInputModifiers, bool> MonitorKeyEvent { get; set; }
+
+        public PixelPoint PPTClipViewOrigin { get; }
     }
 }

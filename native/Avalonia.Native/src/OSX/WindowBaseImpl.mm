@@ -663,6 +663,15 @@ HRESULT WindowBaseImpl::GetInputMethod(IAvnTextInputMethod **retOut) {
     return S_OK;
 }
 
+HRESULT WindowBaseImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
 {
     @autoreleasepool
