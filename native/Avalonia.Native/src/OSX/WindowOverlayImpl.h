@@ -10,6 +10,7 @@ class WindowOverlayImpl : public virtual WindowImpl
 private:
     NSWindow* parentWindow;
     NSView* parentView;
+    NSView* canvasView;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
@@ -20,6 +21,7 @@ public:
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT GetPosition(AvnPoint *ret) override;
+    virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
 };
 
 #endif
