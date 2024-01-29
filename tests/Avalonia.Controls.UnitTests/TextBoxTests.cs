@@ -151,6 +151,79 @@ namespace Avalonia.Controls.UnitTests
                 Assert.Equal(4, target.CaretIndex);
             }
         }
+        
+        [Fact]
+        public void Control_Backspace_Should_Set_Caret_Position_To_The_Start_Of_The_Deletion()
+        {
+            using (UnitTestApplication.Start(Services))
+            {
+                var target = new TextBox
+                {
+                    Template = CreateTemplate(),
+                    Text = "First Second Third",
+                    SelectionStart = 13,
+                    SelectionEnd = 13
+                };
+
+                target.CaretIndex = 10;
+                target.ApplyTemplate();
+
+                // (First Second |Third)
+                RaiseKeyEvent(target, Key.Back, KeyModifiers.Control);
+                // (First |Third)
+                
+                Assert.Equal(6, target.CaretIndex);
+            }
+        }
+        
+        [Fact]
+        public void Control_Backspace_Should_Remove_The_Double_Whitespace_If_Caret_Index_Was_At_The_End_Of_A_Word()
+        {
+            using (UnitTestApplication.Start(Services))
+            {
+                var target = new TextBox
+                {
+                    Template = CreateTemplate(),
+                    Text = "First Second Third",
+                    SelectionStart = 12,
+                    SelectionEnd = 12
+                };
+
+                target.ApplyTemplate();
+                
+                // (First Second| Third)
+                RaiseKeyEvent(target, Key.Back, KeyModifiers.Control);
+                // (First| Third)
+
+                Assert.Equal("First Third", target.Text);
+            }
+        }
+
+        [Fact]
+        public void Control_Backspace_Undo_Should_Return_Caret_Position()
+        {
+            using (UnitTestApplication.Start(Services))
+            {
+                var target = new TextBox
+                {
+                    Template = CreateTemplate(),
+                    Text = "First Second Third",
+                    SelectionStart = 9,
+                    SelectionEnd = 9
+                };
+
+                target.ApplyTemplate();
+                
+                // (First Second| Third)
+                RaiseKeyEvent(target, Key.Back, KeyModifiers.Control);
+                // (First| Third)
+                
+                target.Undo();
+                // (First Second| Third)
+
+                Assert.Equal(9, target.CaretIndex);
+            }
+        }
 
         [Fact]
         public void Press_Ctrl_A_Select_All_Text()
@@ -1179,6 +1252,47 @@ namespace Avalonia.Controls.UnitTests
                 RaiseKeyEvent(tb, Key.End, KeyModifiers.Shift);
 
                 Assert.Equal(2, tb.CaretIndex);
+            }
+        }
+
+        [Theory]
+        [InlineData("A\nBB\nCCC\nDDDD", 0, 0)]
+        [InlineData("A\nBB\nCCC\nDDDD", 1, 2)]
+        [InlineData("A\nBB\nCCC\nDDDD", 2, 5)]
+        [InlineData("A\nBB\nCCC\nDDDD", 3, 9)]
+        [InlineData("واحد\nاثنين\nثلاثة\nأربعة", 0, 0)]
+        [InlineData("واحد\nاثنين\nثلاثة\nأربعة", 1, 5)]
+        [InlineData("واحد\nاثنين\nثلاثة\nأربعة", 2, 11)]
+        [InlineData("واحد\nاثنين\nثلاثة\nأربعة", 3, 17)]
+        public void Should_Scroll_Caret_To_Line(string text, int targetLineIndex, int expectedCaretIndex)
+        {
+            using (UnitTestApplication.Start(Services))
+            {
+                var tb = new TextBox
+                {
+                    Template = CreateTemplate(),
+                    Text = text
+                };
+                tb.ApplyTemplate();
+                tb.ScrollToLine(targetLineIndex);
+                Assert.Equal(expectedCaretIndex, tb.CaretIndex);
+            }
+        }
+
+        [Fact]
+        public void Should_Throw_ArgumentOutOfRange()
+        {
+            using (UnitTestApplication.Start(Services))
+            {
+                var tb = new TextBox
+                {
+                    Template = CreateTemplate(),
+                    Text = string.Empty
+                };
+                tb.ApplyTemplate();
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => tb.ScrollToLine(-1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => tb.ScrollToLine(1));
             }
         }
 

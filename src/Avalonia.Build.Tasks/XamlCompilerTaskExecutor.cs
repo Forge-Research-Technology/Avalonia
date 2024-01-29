@@ -59,8 +59,8 @@ namespace Avalonia.Build.Tasks
             try
             {
                 references = references.Where(r => !r.ToLowerInvariant().EndsWith("avalonia.build.tasks.dll")).ToArray();
-                var typeSystem = new CecilTypeSystem(references, input);
-                var refTypeSystem = !string.IsNullOrWhiteSpace(refInput) && File.Exists(refInput) ? new CecilTypeSystem(references, refInput) : null;
+                using var typeSystem = new CecilTypeSystem(references, input);
+                using var refTypeSystem = !string.IsNullOrWhiteSpace(refInput) && File.Exists(refInput) ? new CecilTypeSystem(references, refInput) : null;
 
                 var asm = typeSystem.TargetAssemblyDefinition;
                 var refAsm = refTypeSystem?.TargetAssemblyDefinition;
@@ -484,7 +484,7 @@ namespace Avalonia.Build.Tasks
 
                             var foundXamlLoader = false;
                             // Find AvaloniaXamlLoader.Load(this) or AvaloniaXamlLoader.Load(sp, this) and replace it with !XamlIlPopulateTrampoline(this)
-                            foreach (var method in classTypeDefinition.Methods.ToArray())
+                            foreach (var method in classTypeDefinition.Methods.Where(m => m.Body is not null).ToArray())
                             {
                                 var i = method.Body.Instructions;
                                 for (var c = 1; c < i.Count; c++)

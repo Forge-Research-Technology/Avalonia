@@ -81,7 +81,10 @@ namespace Avalonia.Input
 
         public void Dispose()
         {
-            Capture(null);
+            if (Captured != null)
+            {
+                Capture(null);
+            }
         }
 
         /// <summary>
@@ -91,12 +94,16 @@ namespace Avalonia.Input
         internal void CaptureGestureRecognizer(GestureRecognizer? gestureRecognizer)
         {
             if (CapturedGestureRecognizer != gestureRecognizer)
+            {
                 CapturedGestureRecognizer?.PointerCaptureLostInternal(this);
-
-            if (gestureRecognizer != null)
-                Capture(null);
+            }
 
             CapturedGestureRecognizer = gestureRecognizer;
+
+            if (gestureRecognizer != null)
+            {
+                Capture(null);
+            }
         }
     }
 }

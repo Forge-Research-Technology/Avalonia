@@ -58,6 +58,11 @@ namespace Avalonia.Controls.Documents
 
         public override void BuildTextRun(IList<TextRun> textRuns)
         {
+            if(!Child.IsMeasureValid)
+            {
+                Child.Measure(Size.Infinity);
+            }
+
             textRuns.Add(new EmbeddedControlRun(Child, CreateTextRunProperties()));
         }
 

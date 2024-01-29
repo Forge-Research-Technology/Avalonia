@@ -169,7 +169,12 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         static ContentPresenter()
         {
-            AffectsRender<ContentPresenter>(BackgroundProperty, BorderBrushProperty, BorderThicknessProperty, CornerRadiusProperty);
+            AffectsRender<ContentPresenter>(
+                BackgroundProperty,
+                BorderBrushProperty,
+                BorderThicknessProperty,
+                CornerRadiusProperty,
+                BoxShadowProperty);
             AffectsArrange<ContentPresenter>(HorizontalContentAlignmentProperty, VerticalContentAlignmentProperty);
             AffectsMeasure<ContentPresenter>(BorderThicknessProperty, PaddingProperty);
         }
@@ -184,8 +189,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public IBrush? Background
         {
-            get { return GetValue(BackgroundProperty); }
-            set { SetValue(BackgroundProperty, value); }
+            get => GetValue(BackgroundProperty);
+            set => SetValue(BackgroundProperty, value);
         }
 
         /// <summary>
@@ -193,8 +198,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public IBrush? BorderBrush
         {
-            get { return GetValue(BorderBrushProperty); }
-            set { SetValue(BorderBrushProperty, value); }
+            get => GetValue(BorderBrushProperty);
+            set => SetValue(BorderBrushProperty, value);
         }
 
         /// <summary>
@@ -202,8 +207,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public Thickness BorderThickness
         {
-            get { return GetValue(BorderThicknessProperty); }
-            set { SetValue(BorderThicknessProperty, value); }
+            get => GetValue(BorderThicknessProperty);
+            set => SetValue(BorderThicknessProperty, value);
         }
 
         /// <summary>
@@ -211,8 +216,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public CornerRadius CornerRadius
         {
-            get { return GetValue(CornerRadiusProperty); }
-            set { SetValue(CornerRadiusProperty, value); }
+            get => GetValue(CornerRadiusProperty);
+            set => SetValue(CornerRadiusProperty, value);
         }
 
         /// <summary>
@@ -328,8 +333,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public Control? Child
         {
-            get { return _child; }
-            private set { SetAndRaise(ChildProperty, ref _child, value); }
+            get => _child;
+            private set => SetAndRaise(ChildProperty, ref _child, value);
         }
 
         /// <summary>
@@ -338,8 +343,8 @@ namespace Avalonia.Controls.Presenters
         [DependsOn(nameof(ContentTemplate))]
         public object? Content
         {
-            get { return GetValue(ContentProperty); }
-            set { SetValue(ContentProperty, value); }
+            get => GetValue(ContentProperty);
+            set => SetValue(ContentProperty, value);
         }
 
         /// <summary>
@@ -347,8 +352,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public IDataTemplate? ContentTemplate
         {
-            get { return GetValue(ContentTemplateProperty); }
-            set { SetValue(ContentTemplateProperty, value); }
+            get => GetValue(ContentTemplateProperty);
+            set => SetValue(ContentTemplateProperty, value);
         }
 
         /// <summary>
@@ -356,8 +361,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public HorizontalAlignment HorizontalContentAlignment
         {
-            get { return GetValue(HorizontalContentAlignmentProperty); }
-            set { SetValue(HorizontalContentAlignmentProperty, value); }
+            get => GetValue(HorizontalContentAlignmentProperty);
+            set => SetValue(HorizontalContentAlignmentProperty, value);
         }
 
         /// <summary>
@@ -365,8 +370,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public VerticalAlignment VerticalContentAlignment
         {
-            get { return GetValue(VerticalContentAlignmentProperty); }
-            set { SetValue(VerticalContentAlignmentProperty, value); }
+            get => GetValue(VerticalContentAlignmentProperty);
+            set => SetValue(VerticalContentAlignmentProperty, value);
         }
 
         /// <summary>
@@ -374,8 +379,8 @@ namespace Avalonia.Controls.Presenters
         /// </summary>
         public Thickness Padding
         {
-            get { return GetValue(PaddingProperty); }
-            set { SetValue(PaddingProperty, value); }
+            get => GetValue(PaddingProperty);
+            set => SetValue(PaddingProperty, value);
         }
 
         /// <summary>

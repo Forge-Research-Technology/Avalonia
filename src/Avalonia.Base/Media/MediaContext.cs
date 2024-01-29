@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Avalonia.Animation;
+using System.Threading;
 using Avalonia.Layout;
 using Avalonia.Rendering;
 using Avalonia.Rendering.Composition;
@@ -22,7 +20,8 @@ internal partial class MediaContext : ICompositorScheduler
     private readonly Action _render;
     private readonly Action _inputMarkerHandler;
     private readonly HashSet<Compositor> _requestedCommits = new();
-    private readonly Dictionary<Compositor, Batch> _pendingCompositionBatches = new();
+    private readonly Dictionary<Compositor, CompositionBatch> _pendingCompositionBatches = new();
+    private readonly Dispatcher _dispatcher;
     private record  TopLevelInfo(Compositor Compositor, CompositingRenderer Renderer, ILayoutManager LayoutManager);
 
     private List<Action>? _invokeOnRenderCallbacks;
@@ -38,11 +37,12 @@ internal partial class MediaContext : ICompositorScheduler
 
     private Dictionary<object, TopLevelInfo> _topLevels = new();
 
-    private MediaContext()
+    private MediaContext(Dispatcher dispatcher)
     {
         _render = Render;
         _inputMarkerHandler = InputMarkerHandler;
         _clock = new(this);
+        _dispatcher = dispatcher;
         _animationsTimer.Tick += (_, _) =>
         {
             _animationsTimer.Stop();
@@ -58,7 +58,7 @@ internal partial class MediaContext : ICompositorScheduler
             // and need to do a full reset for unit tests
             var context = AvaloniaLocator.Current.GetService<MediaContext>();
             if (context == null)
-                AvaloniaLocator.CurrentMutable.Bind<MediaContext>().ToConstant(context = new());
+                AvaloniaLocator.CurrentMutable.Bind<MediaContext>().ToConstant(context = new(Dispatcher.UIThread));
             return context;
         }
     }
@@ -84,16 +84,17 @@ internal partial class MediaContext : ICompositorScheduler
         
         if (_inputMarkerOp == null)
         {
-            _inputMarkerOp = Dispatcher.UIThread.InvokeAsync(_inputMarkerHandler, DispatcherPriority.Input);
+            _inputMarkerOp = _dispatcher.InvokeAsync(_inputMarkerHandler, DispatcherPriority.Input);
             _inputMarkerAddedAt = _time.Elapsed;
         }
         else if (!now && (_time.Elapsed - _inputMarkerAddedAt).TotalSeconds > MaxSecondsWithoutInput)
         {
             priority = DispatcherPriority.Input;
         }
-        
 
-        _nextRenderOp = Dispatcher.UIThread.InvokeAsync(_render, priority);
+        var renderOp = new DispatcherOperation(_dispatcher, priority, _render, throwOnUiThread: true);
+        _nextRenderOp = renderOp;
+        _dispatcher.InvokeAsyncImpl(renderOp, CancellationToken.None);
     }
     
     /// <summary>

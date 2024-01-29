@@ -153,6 +153,20 @@ namespace Avalonia.Controls
                     }
                 }
             });
+
+            PointerOverElementProperty.Changed.AddClassHandler<TopLevel>((topLevel, e) =>
+            {
+                if (e.OldValue is InputElement oldInputElement)
+                {
+                    oldInputElement.PropertyChanged -= topLevel.PointerOverElementOnPropertyChanged;
+                }
+
+                if (e.NewValue is InputElement newInputElement)
+                {
+                    topLevel.PlatformImpl?.SetCursor(newInputElement.Cursor?.PlatformImpl);
+                    newInputElement.PropertyChanged += topLevel.PointerOverElementOnPropertyChanged;
+                }
+            });
         }
 
         /// <summary>
@@ -266,7 +280,9 @@ namespace Avalonia.Controls
                         var keyEvent = new KeyEventArgs()
                         {
                             KeyModifiers = (KeyModifiers)rawKeyEventArgs.Modifiers,
-                            Key = rawKeyEventArgs.Key
+                            Key = rawKeyEventArgs.Key,
+                            PhysicalKey = rawKeyEventArgs.PhysicalKey,
+                            KeySymbol = rawKeyEventArgs.KeySymbol
                         };
 
                         backRequested = keymap.Any( key => key.Matches(keyEvent));
@@ -307,8 +323,8 @@ namespace Avalonia.Controls
         /// </summary>
         public Size ClientSize
         {
-            get { return _clientSize; }
-            protected set { SetAndRaise(ClientSizeProperty, ref _clientSize, value); }
+            get => _clientSize;
+            protected set => SetAndRaise(ClientSizeProperty, ref _clientSize, value);
         }
 
         /// <summary>
@@ -316,8 +332,8 @@ namespace Avalonia.Controls
         /// </summary>
         public Size? FrameSize
         {
-            get { return _frameSize; }
-            protected set { SetAndRaise(FrameSizeProperty, ref _frameSize, value); }
+            get => _frameSize;
+            protected set => SetAndRaise(FrameSizeProperty, ref _frameSize, value);
         }
 
         /// <summary>
@@ -328,8 +344,8 @@ namespace Avalonia.Controls
         /// </summary>
         public IReadOnlyList<WindowTransparencyLevel> TransparencyLevelHint
         {
-            get { return GetValue(TransparencyLevelHintProperty); }
-            set { SetValue(TransparencyLevelHintProperty, value); }
+            get => GetValue(TransparencyLevelHintProperty);
+            set => SetValue(TransparencyLevelHintProperty, value);
         }
 
         /// <summary>
@@ -363,8 +379,8 @@ namespace Avalonia.Controls
         /// </summary>
         public event EventHandler<RoutedEventArgs> BackRequested
         {
-            add { AddHandler(BackRequestedEvent, value); }
-            remove { RemoveHandler(BackRequestedEvent, value); }
+            add => AddHandler(BackRequestedEvent, value);
+            remove => RemoveHandler(BackRequestedEvent, value);
         }
 
         internal ILayoutManager LayoutManager
@@ -437,8 +453,8 @@ namespace Avalonia.Controls
         /// <inheritdoc/>
         IInputElement? IInputRoot.PointerOverElement
         {
-            get { return GetValue(PointerOverElementProperty); }
-            set { SetValue(PointerOverElementProperty, value); }
+            get => GetValue(PointerOverElementProperty);
+            set => SetValue(PointerOverElementProperty, value);
         }
 
         /// <summary>
@@ -446,8 +462,8 @@ namespace Avalonia.Controls
         /// </summary>
         bool IInputRoot.ShowAccessKeys
         {
-            get { return GetValue(AccessText.ShowAccessKeyProperty); }
-            set { SetValue(AccessText.ShowAccessKeyProperty, value); }
+            get => GetValue(AccessText.ShowAccessKeyProperty);
+            set => SetValue(AccessText.ShowAccessKeyProperty, value);
         }
 
         /// <summary>
@@ -755,6 +771,14 @@ namespace Avalonia.Controls
                     "PlatformImpl is null, couldn't handle input.");
             }
 
+        }
+
+        private void PointerOverElementOnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == CursorProperty && sender is InputElement inputElement)
+            {
+                PlatformImpl?.SetCursor(inputElement.Cursor?.PlatformImpl);
+            }
         }
 
         private void GlobalActualThemeVariantChanged(object? sender, EventArgs e)

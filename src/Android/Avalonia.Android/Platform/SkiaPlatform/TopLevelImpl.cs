@@ -45,7 +45,7 @@ namespace Avalonia.Android.Platform.SkiaPlatform
         private readonly AndroidInputMethod<ViewImpl> _textInputMethod;
         private readonly INativeControlHostImpl _nativeControlHost;
         private readonly IStorageProvider _storageProvider;
-        private readonly ISystemNavigationManagerImpl _systemNavigationManager;
+        private readonly AndroidSystemNavigationManagerImpl _systemNavigationManager;
         private readonly AndroidInsetsManager _insetsManager;
         private readonly ClipboardImpl _clipboard;
         private ViewImpl _view;
@@ -155,6 +155,7 @@ namespace Avalonia.Android.Platform.SkiaPlatform
         
         public virtual void Dispose()
         {
+            _systemNavigationManager.Dispose();
             _view.Dispose();
             _view = null;
         }
@@ -622,6 +623,12 @@ namespace Avalonia.Android.Platform.SkiaPlatform
                 case ImeAction.Done:
                     {
                         _inputMethod.IMM.HideSoftInputFromWindow(_inputMethod.View.WindowToken, HideSoftInputFlags.ImplicitOnly);
+                        break;
+                    }
+                case ImeAction.Next:
+                    {
+                        FocusManager.GetFocusManager(_toplevel.InputRoot)?
+                            .TryMoveFocus(NavigationDirection.Next);
                         break;
                     }
             }

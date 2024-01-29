@@ -366,6 +366,8 @@ namespace Avalonia.Win32.Interop
             VK_OEM_PERIOD = 0xBE,
             VK_OEM_2 = 0xBF,
             VK_OEM_3 = 0xC0,
+            VK_ABNT_C1 = 0xC1,
+            VK_ABNT_C2 = 0xC2,
             VK_OEM_4 = 0xDB,
             VK_OEM_5 = 0xDC,
             VK_OEM_6 = 0xDD,
@@ -1178,7 +1180,12 @@ namespace Avalonia.Win32.Interop
 
         [DllImport("user32.dll", EntryPoint = "DefWindowProcW")]
         public static extern IntPtr DefWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
+        
+        public const int SC_MOUSEMOVE = 0xf012;
+ 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "SendMessageW")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        
         [DllImport("user32.dll", EntryPoint = "DispatchMessageW")]
         public static extern IntPtr DispatchMessage(ref MSG lpmsg);
 
@@ -1203,8 +1210,9 @@ namespace Avalonia.Win32.Interop
         [DllImport("user32.dll")]
         public static extern uint GetDoubleClickTime();
 
-        [DllImport("user32.dll")]
-        public static extern bool GetKeyboardState(byte[] lpKeyState);
+        [DllImport("user32.dll", ExactSpelling = true, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetKeyboardState(byte* lpKeyState);
 
         [DllImport("user32.dll", EntryPoint = "MapVirtualKeyW")]
         public static extern uint MapVirtualKey(uint uCode, uint uMapType);
@@ -1399,15 +1407,15 @@ namespace Avalonia.Win32.Interop
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool DeleteTimerQueueTimer(IntPtr TimerQueue, IntPtr Timer, IntPtr CompletionEvent);
 
-        [DllImport("user32.dll")]
-        public static extern int ToUnicode(
-            uint virtualKeyCode,
-            uint scanCode,
-            byte[] keyboardState,
-            [Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 64)]
-            StringBuilder receivingBuffer,
-            int bufferSize,
-            uint flags);
+        [DllImport("user32.dll", ExactSpelling = true)]
+        public static extern int ToUnicodeEx(
+            uint wVirtKey,
+            uint wScanCode,
+            byte* lpKeyState,
+            char* pwszBuff,
+            int cchBuff,
+            uint wFlags,
+            IntPtr dwhkl);
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool TrackMouseEvent(ref TRACKMOUSEEVENT lpEventTrack);

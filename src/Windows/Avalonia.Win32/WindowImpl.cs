@@ -552,7 +552,7 @@ namespace Avalonia.Win32
             get
             {
                 // Windows 10 and 11 add a 7 pixel invisible border on the left/right/bottom of windows for resizing
-                if (Win32Platform.WindowsVersion.Major < 10 || !HasFullDecorations)
+                if (Win32Platform.WindowsVersion.Major < 10 || !HasFullDecorations || GetStyle().HasFlag(WindowStyles.WS_POPUP))
                 {
                     return PixelSize.Empty;
                 }
@@ -695,8 +695,22 @@ namespace Avalonia.Win32
         public void BeginMoveDrag(PointerPressedEventArgs e)
         {
             e.Pointer.Capture(null);
-            DefWindowProc(_hwnd, (int)WindowsMessage.WM_NCLBUTTONDOWN,
-                new IntPtr((int)HitTestValues.HTCAPTION), IntPtr.Zero);
+
+            // Mouse.LeftButton actually reflects the primary button user is using.
+            // So we don't need to check whether the button has been swapped here.
+            if (e.Pointer.IsPrimary)
+            {
+                // SendMessage's return value is dependent on the message send.  WM_SYSCOMMAND
+                // and WM_LBUTTONUP return value just signify whether the WndProc handled the
+                // message or not, so they are not interesting
+
+                SendMessage(_hwnd, (int)WindowsMessage.WM_SYSCOMMAND, (IntPtr)SC_MOUSEMOVE, IntPtr.Zero);
+                SendMessage(_hwnd, (int)WindowsMessage.WM_LBUTTONUP, IntPtr.Zero, IntPtr.Zero);
+            }
+            else
+            {
+                throw new InvalidOperationException("BeginMoveDrag Failed");
+            }
         }
 
         public void BeginResizeDrag(WindowEdge edge, PointerPressedEventArgs e)
