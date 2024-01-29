@@ -18,6 +18,7 @@ private:
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual bool IsOverlay() override;
+    virtual HRESULT GetScaling(double *ret) override;
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT GetPosition(AvnPoint *ret) override;
