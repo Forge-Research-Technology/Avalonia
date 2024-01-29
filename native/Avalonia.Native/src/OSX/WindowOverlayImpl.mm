@@ -158,6 +158,22 @@ HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
     }
 }
 
+HRESULT WindowOverlayImpl::GetScaling(double *ret) {
+    START_COM_CALL;
+    @autoreleasepool {
+        if (ret == nullptr)
+            return E_POINTER;
+
+        if (parentWindow == nullptr) {
+            *ret = 1;
+            return S_OK;
+        }
+
+        *ret = [parentWindow backingScaleFactor];
+        return S_OK;
+    }
+}
+
 HRESULT WindowOverlayImpl::GetPosition(AvnPoint *ret) {
     START_COM_CALL;
 
