@@ -620,6 +620,7 @@ namespace Avalonia.Win32
                     BeforeCloseCleanup(true);
                 }
 
+                LastResortHandleDestroyer.Unregister(_hwnd);
                 DestroyWindow(_hwnd);
                 _hwnd = IntPtr.Zero;
             }
@@ -869,6 +870,8 @@ namespace Avalonia.Win32
             {
                 throw new Win32Exception();
             }
+
+            LastResortHandleDestroyer.Register(_hwnd);
 
             Handle = new WindowImplPlatformHandle(this);
 
