@@ -6,9 +6,30 @@ namespace Avalonia.Win32
 {
     internal class OffscreenParentWindow
     {
-        public static IntPtr Handle { get; } = CreateParentWindow();
 
+        private static IntPtr s_handle = IntPtr.Zero;
         private static UnmanagedMethods.WndProc? s_wndProcDelegate;
+        public static IntPtr Handle
+        {
+            get
+            {
+                if (s_handle == IntPtr.Zero)
+                {
+                    s_handle = CreateParentWindow();
+                }
+
+                return s_handle;
+            }
+        }
+
+        public static void Destroy()
+        {
+            if (Handle != IntPtr.Zero)
+            {
+                UnmanagedMethods.DestroyWindow(Handle);
+                s_handle = IntPtr.Zero;
+            }
+        }
 
         private static IntPtr CreateParentWindow()
         {

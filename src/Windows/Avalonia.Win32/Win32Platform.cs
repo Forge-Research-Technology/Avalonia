@@ -103,6 +103,7 @@ namespace Avalonia.Win32
             options.ShutdownCancellationToken?.Register(() =>
             {
                 s_instance.Destroy();
+                OffscreenParentWindow.Destroy();
             });
 
             var renderTimer = options.ShouldRenderOnUIThread ? new UiThreadRenderTimer(60) : new DefaultRenderTimer(60);
