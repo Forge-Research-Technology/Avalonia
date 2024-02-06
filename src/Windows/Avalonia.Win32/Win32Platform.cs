@@ -102,7 +102,6 @@ namespace Avalonia.Win32
 
             options.ShutdownCancellationToken?.Register(() =>
             {
-                LastResortHandleDestroyer.DestroyAll();
                 s_instance.Destroy();
                 OffscreenParentWindow.Destroy();
             });
