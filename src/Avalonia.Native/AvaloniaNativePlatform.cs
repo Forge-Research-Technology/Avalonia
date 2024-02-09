@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -190,6 +191,12 @@ namespace Avalonia.Native
         public IWindowImpl CreateOverlay(IntPtr parentWindow, string parentView)
         {
             return new WindowImpl(parentWindow, parentView, _factory, _options);
+        }
+
+        public bool AppActivate(string name)
+        {
+            Debug.WriteLine($"AppActivate {name}");
+            return true;
         }
     }
 }

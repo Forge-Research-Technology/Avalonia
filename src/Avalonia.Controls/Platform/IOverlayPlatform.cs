@@ -7,6 +7,7 @@ namespace Avalonia.Platform
     public interface IOverlayPlatform
     {
         IWindowImpl CreateOverlay(IntPtr parentWindow, string parentView);
+        bool AppActivate(string name);
     }
 
 }
