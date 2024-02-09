@@ -683,6 +683,7 @@ interface IAvaloniaNativeFactory : IUnknown
      HRESULT CreateApplicationCommands(IAvnApplicationCommands** ppv);
      HRESULT CreatePlatformSettings(IAvnPlatformSettings** ppv);
      HRESULT CreatePlatformBehaviorInhibition(IAvnPlatformBehaviorInhibition** ppv);
+     bool AppActivate(char* bundleIdentifier);
 }
 
 [uuid(233e094f-9b9f-44a3-9a6e-6948bbdd9fb1)]

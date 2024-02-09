@@ -251,6 +251,31 @@ public:
         }
     };
 
+    virtual bool AppActivate(char* bundleIdentifier) override
+    {
+        START_COM_CALL;
+        
+        @autoreleasepool
+        {
+            if (bundleIdentifier == nullptr)
+                return false;
+
+            NSArray<NSRunningApplication *> *targetApps = [NSRunningApplication runningApplicationsWithBundleIdentifier:[NSString stringWithUTF8String:bundleIdentifier]];
+            NSRunningApplication *targetApp = [targetApps firstObject];
+
+            if (targetApp != nil) {
+                // Yield to it.
+                [NSApp yieldActivationToApplication: targetApp];
+                
+                // Then activate it.
+                [targetApp activateWithOptions:0];
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     virtual HRESULT CreatePopup(IAvnWindowEvents* cb, IAvnPopup** ppv) override
     {
         START_COM_CALL;
