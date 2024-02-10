@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -193,10 +192,10 @@ namespace Avalonia.Native
             return new WindowImpl(parentWindow, parentView, _factory, _options);
         }
 
-        public bool AppActivate(string name)
+        public bool AppActivate(string bundleIdentifier)
         {
-            Debug.WriteLine($"AppActivate {name}");
-            return true;
+            var result = _factory.AppActivate(bundleIdentifier).FromComBool();
+            return result;
         }
     }
 }

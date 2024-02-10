@@ -251,6 +251,33 @@ public:
         }
     };
 
+    virtual bool AppActivate(char* bundleIdentifier) override
+    {
+        START_COM_CALL;
+        
+        @autoreleasepool
+        {
+            if (bundleIdentifier == nullptr)
+                return false;
+
+            NSArray<NSRunningApplication *> *targetApps = [NSRunningApplication runningApplicationsWithBundleIdentifier:[NSString stringWithUTF8String:bundleIdentifier]];
+            NSRunningApplication *targetApp = [targetApps firstObject];
+
+            if (targetApp != nil) {
+                // The recommended way is to first yield focus from our app to the target app:
+                // [NSApp yieldActivationToApplication: targetApp];
+                // However, this only works on Macos >= 14.0
+                // It is too early to enable this feature at this time.
+
+                // It seems that we can get away with switching focus directly
+                [targetApp activateWithOptions:0];
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     virtual HRESULT CreatePopup(IAvnWindowEvents* cb, IAvnPopup** ppv) override
     {
         START_COM_CALL;
