@@ -264,10 +264,12 @@ public:
             NSRunningApplication *targetApp = [targetApps firstObject];
 
             if (targetApp != nil) {
-                // Yield to it.
-                [NSApp yieldActivationToApplication: targetApp];
-                
-                // Then activate it.
+                // Macos >= 14.0
+                // The recommended way is to first yield focus from our app to the target app:
+                // [NSApp yieldActivationToApplication: targetApp];
+                // It is too early to enable this feature at this time.
+
+                // It seems that we can get away with switching focus directly
                 [targetApp activateWithOptions:0];
                 return true;
             }
