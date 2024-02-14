@@ -188,6 +188,8 @@ namespace Avalonia.Native
         public Action<Point> OnSlideMouseActivate { get; set; }
         public Func<Point, bool> ShouldPassThrough { get; set; }
         public Func<RawKeyEventType, Key, RawInputModifiers, bool> MonitorKeyEvent { get; set; }
+        public Action OnClipboardChange { get; set; }
+
         public IMouseDevice MouseDevice => _mouse;
         public abstract IPopupImpl CreatePopup();
 
@@ -328,7 +330,6 @@ namespace Avalonia.Native
             {
                 System.Diagnostics.Debug.WriteLine($"Got first responder: {responder}");
                 _parent.FirstResponderChanged?.Invoke(responder);
-
             }
 
             void IAvnWindowBaseEvents.OnSlideMouseActivate(AvnPoint p)
@@ -350,6 +351,12 @@ namespace Avalonia.Native
 
                 System.Diagnostics.Debug.WriteLine($"MonitorKeyEvent: {result}");
                 return result.AsComBool();
+            }
+
+            void IAvnWindowBaseEvents.OnClipboardChange()
+            {
+                System.Diagnostics.Debug.WriteLine($"Got clipboard change");
+                _parent.OnClipboardChange?.Invoke();
             }
         }
        
