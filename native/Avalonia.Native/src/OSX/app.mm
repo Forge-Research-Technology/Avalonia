@@ -125,6 +125,16 @@ extern void InitializeAvnApp(IAvnApplicationEvents* events, bool disableAppDeleg
         id delegate = [[AvnAppDelegate alloc] initWithEvents:events];
         [app setDelegate:delegate];
     }
+
+    [NSTimer scheduledTimerWithTimeInterval:1 repeats:YES block:^(NSTimer *timer) {
+        static NSInteger clipboardChangeCount = [[NSPasteboard generalPasteboard] changeCount];
+        NSInteger currentChangeCount = [[NSPasteboard generalPasteboard] changeCount];
+
+        if (currentChangeCount != clipboardChangeCount) {
+            events->OnClipboardChange();
+            clipboardChangeCount = currentChangeCount;
+        }
+    }];
 }
 
 extern void ReleaseAvnAppEvents()

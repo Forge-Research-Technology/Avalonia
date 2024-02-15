@@ -6,9 +6,10 @@ using Avalonia.Platform;
 
 namespace Avalonia.Native
 {
-    internal class AvaloniaNativeApplicationPlatform : NativeCallbackBase, IAvnApplicationEvents, IPlatformLifetimeEventsImpl
+    internal class AvaloniaNativeApplicationPlatform : NativeCallbackBase, IAvnApplicationEvents, IPlatformLifetimeEventsImpl, ISpecialApplication
     {
         public event EventHandler<ShutdownRequestedEventArgs> ShutdownRequested;
+        public Action OnClipboardChange { get; set; }
         
         void IAvnApplicationEvents.FilesOpened(IAvnStringArray urls)
         {
@@ -45,6 +46,12 @@ namespace Avalonia.Native
             {
                 lifetime.RaiseActivated(ActivationKind.Background);    
             }
+        }
+
+        void IAvnApplicationEvents.OnClipboardChange()
+        {
+            System.Diagnostics.Debug.WriteLine($"Got clipboard change");
+            OnClipboardChange?.Invoke();
         }
 
         public int TryShutdown()

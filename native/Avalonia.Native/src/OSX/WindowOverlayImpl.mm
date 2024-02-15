@@ -4,12 +4,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
-
-    [this->parentView addSubview:View];
-
+    
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
+    [this->parentView addSubview:View];
+    
     NSRect frame = this->parentView.frame;
     frame.size.height += frame.origin.y;
     frame.origin.y = -frame.origin.y;
@@ -19,7 +19,6 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
-
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
         //NSLog(@"MONITOR mouseMoved START");
