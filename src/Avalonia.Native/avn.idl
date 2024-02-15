@@ -783,7 +783,6 @@ interface IAvnWindowBaseEvents : IUnknown
      void LogFirstResponder([const] char* text);
      void OnSlideMouseActivate(AvnPoint point);
      bool MonitorKeyEvent(AvnRawKeyEventType type, u_int64_t timeStamp, AvnInputModifiers modifiers, uint key);
-     void OnClipboardChange();
 }
 
 [uuid(1ae178ee-1fcc-447f-b6dd-b7bb727f934c)]
@@ -1098,6 +1097,7 @@ interface IAvnApplicationEvents : IUnknown
      void OnReopen ();
      void OnHide ();
      void OnUnhide ();
+     void OnClipboardChange();
 }
 
 [uuid(b4284791-055b-4313-8c2e-50f0a8c72ce9)]
