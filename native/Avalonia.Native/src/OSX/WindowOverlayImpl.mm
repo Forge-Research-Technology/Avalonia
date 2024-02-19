@@ -97,7 +97,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        NSLog(@"MONITOR key window=%@ overlay=%d Cmd+%d, type %d", [event window], [event window] == this->parentWindow, [event keyCode], [event type]);
+        NSLog(@"MONITOR key window=%@ overlay=%d key=%d, type=%d", [event window], [event window] == this->parentWindow, [event keyCode], [event type]);
 
         if ([event window] != this->parentWindow && [[event window] isKindOfClass:[AvnWindow class]])
         {
