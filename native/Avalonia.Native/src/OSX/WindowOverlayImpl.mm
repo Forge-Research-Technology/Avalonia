@@ -96,18 +96,28 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        NSLog(@"MONITOR keymonitor %@ overlay=%d", [event window], [event window] == this->parentWindow);
-        if ([event window] != this->parentWindow)
+        NSLog(@"MONITOR key window=%@ overlay=%d Cmd+%d, type %d", [event window], [event window] == this->parentWindow, [event keyCode], [event type]);
+
+        if ([event window] != this->parentWindow && [NSStringFromClass([[event window] class]) isEqualToString: @"AvnWindow"])
         {
-            return event;
+            // This is needed because PowerPoint captures paste events even when inside child windows.
+            // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
+            // contents to be inserted in the slide. The only child windows that disable paste events
+            // are those that completely deactivate PowerPoint's main window (eg. Preferences).
+
+            // Tried makeFirstResponder, makeKeyAndOrderFront without any luck.
+            // In order to keep Powerpoint's default behaviour, we will only forward keyboard events
+            // that are intended for Avalonia windows.
+            
+            NSLog(@"MONITOR Forwarding keyboard event to AvnWindow");
+            [[event window] sendEvent:event];
+            return nil;
         }
 
         if (flags == NSCommandKeyMask)
         {
             // This code is adapted from AvnView
             // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
-
-            NSLog(@"MONITOR keyDown|keyUp CMD + %d, type %d", [event keyCode], [event type]);
 
             auto scanCode = [event keyCode];
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
