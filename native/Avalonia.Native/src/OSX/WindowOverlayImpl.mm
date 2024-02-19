@@ -96,6 +96,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
+        NSLog(@"MONITOR keymonitor %@ overlay=%d", [event window], [event window] == this->parentWindow);
+        if ([event window] != this->parentWindow)
+        {
+            return event;
+        }
+
         if (flags == NSCommandKeyMask)
         {
             // This code is adapted from AvnView
