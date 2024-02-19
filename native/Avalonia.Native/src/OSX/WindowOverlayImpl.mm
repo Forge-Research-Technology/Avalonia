@@ -1,4 +1,5 @@
 #include "WindowOverlayImpl.h"
+#include "WindowInterfaces.h"
 
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
@@ -98,7 +99,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         NSLog(@"MONITOR key window=%@ overlay=%d Cmd+%d, type %d", [event window], [event window] == this->parentWindow, [event keyCode], [event type]);
 
-        if ([event window] != this->parentWindow && [NSStringFromClass([[event window] class]) isEqualToString: @"AvnWindow"])
+        if ([event window] != this->parentWindow && [[event window] isKindOfClass:[AvnWindow class]])
         {
             // This is needed because PowerPoint captures paste events even when inside child windows.
             // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
