@@ -441,6 +441,15 @@
 
 - (void)sendEvent:(NSEvent *_Nonnull)event
 {
+    // Debug key events
+    // if ([event type] == NSEventTypeKeyDown) {
+    //     NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+
+    //     NSLog(@"RECEIVING window=%@ cmd=%d key=%@, type=%d",
+    //         [event window], flags == NSCommandKeyMask, [event characters], [event type]);
+
+    // }
+
     [super sendEvent:event];
 
     /// This is to detect non-client clicks. This can only be done on Windows... not popups, hence the dynamic_cast.

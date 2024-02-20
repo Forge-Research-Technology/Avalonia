@@ -97,27 +97,29 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        NSLog(@"MONITOR keymonitor window=%@ overlay=%d cmd=%d key=%d, type=%d",
-            [event window], [event window] == this->parentWindow, flags == NSCommandKeyMask, [event keyCode], [event type]);
-
-        if ([event window] != this->parentWindow && [[event window] isKindOfClass:[AvnWindow class]])
-        {
-            // This is needed because PowerPoint captures paste events even when inside child windows.
-            // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
-            // contents to be inserted in the slide. The only child windows that disable paste events
-            // are those that completely deactivate PowerPoint's main window (eg. Preferences).
-
-            // Tried makeFirstResponder, makeKeyAndOrderFront without any luck.
-            // In order to keep Powerpoint's default behaviour, we will only forward keyboard events
-            // that are intended for Avalonia windows.
-            
-            NSLog(@"MONITOR Forwarding keyboard event to AvnWindow");
-            [[event window] sendEvent:event];
-            return nil;
-        }
+        // Debug key events
+        // NSLog(@"DISPATCHING window=%@ overlay=%d cmd=%d key=%@, type=%d",
+        //    [event window], [event window] == this->parentWindow, flags == NSCommandKeyMask, [event characters], [event type]);
 
         if (flags == NSCommandKeyMask)
         {
+            if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
+            {
+                // We treat Cmd+v (keycode 9) in a special way.
+                // PowerPoint catches some of the key events before getting to their normal window handler.
+                // Some of those Cmd+key events include: q, w, o, p, a, s, f, h, v, m
+
+                // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
+                // contents to be inserted in the slide. Other windows completely disable the slide editor,
+                // but we don't want to do that (eg. Preferences window).
+                // Tried makeFirstResponder, makeKeyAndOrderFront without any luck.
+                // In order to maintain Powerpoint's default behaviour, we will only force execution for some
+                // of those keyboard events that were intended for our Avalonia windows (eg. Data Editor window).
+                
+                NSLog(@"MONITOR Forcing keyboard event to AvnWindow");
+                [[event window] sendEvent:event];
+                return nil;
+            }
             // This code is adapted from AvnView
             // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
 
