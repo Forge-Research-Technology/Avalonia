@@ -105,12 +105,16 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         {
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
             {
-                // We treat Cmd+v (keycode 9) in a special way.
+                // We treat Cmd+v (keycode 9) in a special way. This is similar to what Avalonia does in the
+                // app.mm sendEvent handler but never executed in our case, because PowerPoint already has
+                // instantiated an NSApplication. Thus we need to do a similar thing from some other place.
+
                 // PowerPoint catches some of the key events before getting to their normal window handler.
                 // Some of those Cmd+key events include: q, w, o, p, a, s, f, h, v, m
-                // Those must be key equivalents that get tested via `performKeyEquivalent`
-                // Avalonia has implemented some custom logic in app.mm sendEvent that's probably not playing
-                // well with PowerPoint's way of handling events
+                // Those must be key equivalents that get tested via `performKeyEquivalent`, but at this time
+                // this is handled in a strange way by Avalonia.
+
+                // When we update to 11.0.9, we should revisit this again.
 
                 // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
                 // contents to be inserted in the slide. Other windows completely disable the slide editor,
