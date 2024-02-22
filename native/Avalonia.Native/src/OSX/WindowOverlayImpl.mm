@@ -1,4 +1,5 @@
 #include "WindowOverlayImpl.h"
+#include "WindowInterfaces.h"
 
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
@@ -96,12 +97,39 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
+        // Debug key events
+        // NSLog(@"DISPATCHING window=%@ overlay=%d cmd=%d key=%@, type=%d",
+        //    [event window], [event window] == this->parentWindow, flags == NSCommandKeyMask, [event characters], [event type]);
+
         if (flags == NSCommandKeyMask)
         {
+            if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
+            {
+                // We treat Cmd+v (keycode 9) in a special way. This is similar to what Avalonia does in the
+                // app.mm sendEvent handler but never executed in our case, because PowerPoint already has
+                // instantiated an NSApplication. Thus we need to do a similar thing from some other place.
+
+                // PowerPoint catches some of the key events before getting to their normal window handler.
+                // Some of those Cmd+key events include: q, w, o, p, a, s, f, h, v, m
+                // Those must be key equivalents that get tested via `performKeyEquivalent`, but at this time
+                // this is handled in a strange way by Avalonia.
+
+                // When we update to 11.0.9, we should revisit this again.
+
+                // For example, hitting Cmd+v in the `About PowerPoint` window will cause previous clipboard 
+                // contents to be inserted in the slide. Other windows completely disable the slide editor,
+                // but we don't want to do that (eg. Preferences window).
+                
+                // Tried makeFirstResponder, makeKeyAndOrderFront without any luck.
+                // In order to maintain Powerpoint's default behaviour, we will only manually execute some of
+                // those keyboard events that were intended for our Avalonia windows (eg. Data Editor window).
+                
+                NSLog(@"MONITOR Forcing keyboard event to AvnWindow");
+                [[event window] sendEvent:event];
+                return nil;
+            }
             // This code is adapted from AvnView
             // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
-
-            NSLog(@"MONITOR keyDown|keyUp CMD + %d, type %d", [event keyCode], [event type]);
 
             auto scanCode = [event keyCode];
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
