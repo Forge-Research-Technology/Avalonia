@@ -55,8 +55,9 @@ partial class Build : NukeBuild
         if (Parameters.IsLocalBuild)
         {
             Information("Repository Name: " + Parameters.RepositoryName);
-            Information("Repository Branch: " + Parameters.RepositoryBranch);
         }
+        
+        Information("Repository Branch: " + Parameters.RepositoryBranch);
         Information("Configuration: " + Parameters.Configuration);
         Information("IsLocalBuild: " + Parameters.IsLocalBuild);
         Information("IsRunningOnUnix: " + Parameters.IsRunningOnUnix);
