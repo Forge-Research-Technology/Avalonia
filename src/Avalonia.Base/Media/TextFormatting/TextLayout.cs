@@ -531,8 +531,7 @@ namespace Avalonia.Media.TextFormatting
 
                 while (true)
                 {
-                    var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, MaxWidth,
-                        _paragraphProperties, previousLine?.TextLineBreak);
+                    var textLine = FormatTextLine(textFormatter, _textSource, _textSourceLength, MaxWidth, _paragraphProperties, previousLine?.TextLineBreak);
 
                     if (textLine is null)
                     {
@@ -637,6 +636,22 @@ namespace Avalonia.Media.TextFormatting
                 objectPool.TextLines.Return(ref textLines);
                 objectPool.VerifyAllReturned();
             }
+        }
+        /// <summary>
+        /// For overriding formatting of text line, for e.g. text line indentation when text line is a part of a list
+        /// </summary>
+        public virtual TextLine? FormatTextLine(
+            TextFormatter textFormatter,
+            ITextSource textSource, 
+            int textSourceLength, 
+            double maxWidth, 
+            TextParagraphProperties paragraphProperties, 
+            TextLineBreak? previousTextLineBreak)
+        {
+            var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, MaxWidth,
+                       _paragraphProperties, previousTextLineBreak);
+
+            return textLine;
         }
 
         private void UpdateMetrics(
