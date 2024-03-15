@@ -76,7 +76,7 @@ public partial class Build
 
             // CONFIGURATION
             MasterBranch = "refs/heads/main";
-            ReleaseBranchRegex = new("^refs/heads/release/[1-9]+$");
+            ReleaseBranchRegex = new("^refs/heads/release/[0-9]+$");
 
             ReleaseConfiguration = "Release";
             MSBuildSolution = RootDirectory / "dirs.proj";
