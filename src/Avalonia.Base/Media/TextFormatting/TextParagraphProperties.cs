@@ -24,7 +24,7 @@
         /// <summary>
         /// Paragraph's line spacing
         /// </summary>
-        internal double LineSpacing { get; set; }
+        public double LineSpacing { get; set; }
 
         /// <summary>
         /// Indicates the first line of the paragraph.

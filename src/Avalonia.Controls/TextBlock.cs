@@ -159,6 +159,10 @@ namespace Avalonia.Controls
         private IReadOnlyList<TextRun>? _textRuns;
         private InlineCollection? _inlines;
 
+        public Size Constraint => _constraint;
+
+        public IReadOnlyList<TextRun>? TextRuns => _textRuns;
+
         /// <summary>
         /// Initializes static members of the <see cref="TextBlock"/> class.
         /// </summary>
@@ -846,7 +850,7 @@ namespace Avalonia.Controls
             InvalidateTextLayout();
         }
 
-        private readonly record struct SimpleTextSource : ITextSource
+        public readonly record struct SimpleTextSource : ITextSource
         {
             private readonly string _text;
             private readonly TextRunProperties _defaultProperties;
@@ -875,7 +879,7 @@ namespace Avalonia.Controls
             }
         }
 
-        private readonly struct InlinesTextSource : ITextSource
+        public readonly struct InlinesTextSource : ITextSource
         {
             private readonly IReadOnlyList<TextRun> _textRuns;
 

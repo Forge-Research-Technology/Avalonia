@@ -12,7 +12,7 @@ namespace Avalonia.Media.TextFormatting
         private readonly ITextSource _textSource;
         private readonly TextParagraphProperties _paragraphProperties;
         private readonly TextTrimming _textTrimming;
-        private readonly TextLine[] _textLines;
+        private TextLine[] _textLines;
         private readonly CachedMetrics _metrics = new();
 
         private int _textSourceLength;
@@ -84,7 +84,8 @@ namespace Avalonia.Media.TextFormatting
             TextTrimming? textTrimming = null,
             double maxWidth = double.PositiveInfinity,
             double maxHeight = double.PositiveInfinity,
-            int maxLines = 0)
+            int maxLines = 0,
+            Func<ITextSource, int, double, double>? ListIndentationFunc = null)
         {
             _textSource = textSource;
 
@@ -97,6 +98,8 @@ namespace Avalonia.Media.TextFormatting
             MaxHeight = maxHeight;
 
             MaxLines = maxLines;
+
+            ListIndentationFunc = ListIndentationFunc;
 
             _textLines = CreateTextLines();
         }
@@ -531,7 +534,14 @@ namespace Avalonia.Media.TextFormatting
 
                 while (true)
                 {
-                    var textLine = FormatTextLine(textFormatter, _textSource, _textSourceLength, MaxWidth, _paragraphProperties, previousLine?.TextLineBreak);
+                    double? listIndentation = null;
+                    if (ListIndentationFunc is not null)
+                    {
+                        listIndentation = ListIndentationFunc(_textSource, _textSourceLength, MaxWidth);
+                    }
+
+                    var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, MaxWidth,
+                        _paragraphProperties, previousLine?.TextLineBreak, listIndentation);
 
                     if (textLine is null)
                     {
@@ -637,22 +647,8 @@ namespace Avalonia.Media.TextFormatting
                 objectPool.VerifyAllReturned();
             }
         }
-        /// <summary>
-        /// For overriding formatting of text line, for e.g. text line indentation when text line is a part of a list
-        /// </summary>
-        public virtual TextLine? FormatTextLine(
-            TextFormatter textFormatter,
-            ITextSource textSource, 
-            int textSourceLength, 
-            double maxWidth, 
-            TextParagraphProperties paragraphProperties, 
-            TextLineBreak? previousTextLineBreak)
-        {
-            var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, MaxWidth,
-                       _paragraphProperties, previousTextLineBreak);
 
-            return textLine;
-        }
+        public Func<ITextSource, int, double, double>? ListIndentationFunc { get; set; }
 
         private void UpdateMetrics(
             TextLine currentLine,
