@@ -649,7 +649,7 @@ namespace Avalonia.Media.TextFormatting
             }
         }
 
-        public Func<ITextSource, int, double, double>? ListIndentationFunc { get; set; }
+        public Func<ITextSource, int, double, double>? ListIndentationFunc { get; }
 
         private void UpdateMetrics(
             TextLine currentLine,
