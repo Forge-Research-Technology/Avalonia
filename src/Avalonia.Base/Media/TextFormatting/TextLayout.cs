@@ -12,7 +12,7 @@ namespace Avalonia.Media.TextFormatting
         private readonly ITextSource _textSource;
         private readonly TextParagraphProperties _paragraphProperties;
         private readonly TextTrimming _textTrimming;
-        private TextLine[] _textLines;
+        private readonly TextLine[] _textLines;
         private readonly CachedMetrics _metrics = new();
 
         private int _textSourceLength;
