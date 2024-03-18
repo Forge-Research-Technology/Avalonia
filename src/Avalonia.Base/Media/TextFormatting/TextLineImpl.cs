@@ -1413,7 +1413,7 @@ namespace Avalonia.Media.TextFormatting
                 case TextAlignment.Right:
                     return Math.Max(0, _paragraphWidth - widthIncludingTrailingWhitespace);
                 default:
-                    return 50;
+                    return 0;
             }
         }
     }

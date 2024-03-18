@@ -78,6 +78,7 @@ namespace Avalonia.Media.TextFormatting
         /// <param name="maxWidth">The maximum width.</param>
         /// <param name="maxHeight">The maximum height.</param>
         /// <param name="maxLines">The maximum number of text lines.</param>
+        /// <param name="listIndentationFunc">Injectable function to handle list indentation.</param>
         public TextLayout(
             ITextSource textSource,
             TextParagraphProperties paragraphProperties,
@@ -85,7 +86,7 @@ namespace Avalonia.Media.TextFormatting
             double maxWidth = double.PositiveInfinity,
             double maxHeight = double.PositiveInfinity,
             int maxLines = 0,
-            Func<ITextSource, int, double, double>? ListIndentationFunc = null)
+            Func<ITextSource, int, double, double>? listIndentationFunc = null)
         {
             _textSource = textSource;
 
@@ -99,7 +100,7 @@ namespace Avalonia.Media.TextFormatting
 
             MaxLines = maxLines;
 
-            ListIndentationFunc = ListIndentationFunc;
+            ListIndentationFunc = listIndentationFunc;
 
             _textLines = CreateTextLines();
         }
@@ -534,14 +535,14 @@ namespace Avalonia.Media.TextFormatting
 
                 while (true)
                 {
-                    double? listIndentation = null;
+                    var paragraphWidth = MaxWidth;
                     if (ListIndentationFunc is not null)
                     {
-                        listIndentation = ListIndentationFunc(_textSource, _textSourceLength, MaxWidth);
+                        paragraphWidth = ListIndentationFunc(_textSource, _textSourceLength, MaxWidth);
                     }
 
-                    var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, MaxWidth,
-                        _paragraphProperties, previousLine?.TextLineBreak, listIndentation);
+                    var textLine = textFormatter.FormatLine(_textSource, _textSourceLength, paragraphWidth,
+                        _paragraphProperties, previousLine?.TextLineBreak);
 
                     if (textLine is null)
                     {
