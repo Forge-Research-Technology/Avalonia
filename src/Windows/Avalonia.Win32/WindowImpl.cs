@@ -1594,7 +1594,7 @@ namespace Avalonia.Win32
         protected override IntPtr CreateWindowOverride(ushort atom)
         {
             var hwnd = CreateWindowEx(
-                (int)(WindowStyles.WS_EX_LAYERED | (WindowStyles)0x00200000),
+                (int)(WindowStyles.WS_EX_TRANSPARENT | (WindowStyles)0x00200000),
                 atom,
                 null,
                 (int)WindowStyles.WS_CHILD | (int)WindowStyles.WS_CLIPCHILDREN | (int)WindowStyles.WS_CLIPSIBLINGS | (int)WindowStyles.WS_MAXIMIZE,
@@ -1606,8 +1606,6 @@ namespace Avalonia.Win32
                 IntPtr.Zero,
                 IntPtr.Zero,
                 IntPtr.Zero);
-
-            SetLayeredWindowAttributes(hwnd, 0, 255, LayeredWindowFlags.LWA_ALPHA);
             
             return hwnd;
         }
