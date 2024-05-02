@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using Avalonia.Media;
 using Avalonia.Platform;
 using SkiaSharp;
@@ -24,7 +25,9 @@ namespace Avalonia.Skia
                 _skFontManager = SKFontManager.CreateDefault();
             }
 
-            return _skFontManager.GetFontFamilies();
+            return _skFontManager.GetFontFamilies()
+                .Where(x => x != null)
+                .ToArray();
         }
 
         [ThreadStatic] private static string[]? t_languageTagBuffer;
