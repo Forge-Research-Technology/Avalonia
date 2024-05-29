@@ -683,6 +683,15 @@ HRESULT WindowBaseImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
     }
 }
 
+HRESULT WindowBaseImpl::TakeScreenshot(void** ret, int* retLength) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
 {
     @autoreleasepool
