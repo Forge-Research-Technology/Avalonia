@@ -23,6 +23,7 @@ public:
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT GetPosition(AvnPoint *ret) override;
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
+    virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
 };
 
 #endif

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Automation.Peers;
@@ -9,6 +10,7 @@ using Avalonia.Controls.Platform.Surfaces;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.Raw;
+using Avalonia.Media.Imaging;
 using Avalonia.Native.Interop;
 using Avalonia.OpenGL;
 using Avalonia.Platform;
@@ -644,6 +646,20 @@ namespace Avalonia.Native
         public PixelPoint PPTClipViewOrigin
         {
             get => _native?.PPTClipViewOrigin.ToAvaloniaPixelPoint() ?? default;
+        }
+
+        public unsafe Bitmap TakeScreenshot()
+        {
+            void* bufferData = null;
+            int bufferLength = 0;
+            _native?.TakeScreenshot(&bufferData, &bufferLength);
+
+            if (bufferData == null || bufferLength == 0) {
+                throw new Exception("Error taking screenshot");
+            }
+
+            UnmanagedMemoryStream imageBuffer = new UnmanagedMemoryStream((byte*)bufferData, bufferLength);
+            return new Bitmap(imageBuffer);
         }
     }
 }

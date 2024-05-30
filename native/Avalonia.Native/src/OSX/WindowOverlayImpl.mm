@@ -90,7 +90,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             this->BaseEvents->OnSlideMouseActivate(point);
         }
 
-        return event;
+                return event;
     }];
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp handler:^NSEvent * (NSEvent * event) {
@@ -268,4 +268,39 @@ HRESULT WindowOverlayImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
 
         return S_OK;
     }
+}
+
+HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
+    NSView* view = [FindNSView(this->parentWindow, @"PPTDocShell") superview];
+    
+    if (view == nullptr) {
+        NSLog(@"PPTDocShell or superview not found!");
+        return E_FAIL;
+    }
+
+    NSSize viewSize = [view bounds].size;
+    NSBitmapImageRep *imageRep = [[NSBitmapImageRep alloc]
+                                  initWithBitmapDataPlanes:NULL
+                                  pixelsWide:viewSize.width
+                                  pixelsHigh:viewSize.height
+                                  bitsPerSample:8
+                                  samplesPerPixel:4
+                                  hasAlpha:YES
+                                  isPlanar:NO
+                                  colorSpaceName:NSCalibratedRGBColorSpace
+                                  bytesPerRow:0
+                                  bitsPerPixel:0];
+
+    [view cacheDisplayInRect:[view bounds] toBitmapImageRep:imageRep];
+
+    NSDictionary *imageProps = @{};
+    NSData *bitmapData = [imageRep representationUsingType:NSBitmapImageFileTypePNG properties:imageProps];
+    
+    *retLength = [bitmapData length];
+    *ret = (void *)[bitmapData bytes];
+    
+    //NSLog(@"Writing bitmap to file %@", filePath);
+    //[bitmapData writeToFile:filePath atomically:YES];
+
+    return S_OK;
 }
