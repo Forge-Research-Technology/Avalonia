@@ -271,10 +271,10 @@ HRESULT WindowOverlayImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
 }
 
 HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
-    NSView* view = [FindNSView(this->parentWindow, @"PPTDocShell") superview];
+    NSView* view = [[this->parentWindow contentView] superview];
     
     if (view == nullptr) {
-        NSLog(@"PPTDocShell or superview not found!");
+        NSLog(@"TakeScreenshot: contentView or superview not found!");
         return E_FAIL;
     }
 
