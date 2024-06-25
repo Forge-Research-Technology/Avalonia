@@ -578,6 +578,9 @@ namespace Avalonia.X11
 
         private Thickness? GetFrameExtents()
         {
+            if (_systemDecorations != SystemDecorations.Full)
+                return new Thickness(0);
+
             XGetWindowProperty(_x11.Display, _handle, _x11.Atoms._NET_FRAME_EXTENTS, IntPtr.Zero,
                 new IntPtr(4), false, (IntPtr)Atom.AnyPropertyType, out var _,
                 out var _, out var nitems, out var _, out var prop);
@@ -1100,7 +1103,9 @@ namespace Avalonia.X11
             else
             {
                 XRaiseWindow(_x11.Display, _handle);
-                XSetInputFocus(_x11.Display, _focusProxy._handle, 0, IntPtr.Zero);
+
+                if (_focusProxy is not null)
+                    XSetInputFocus(_x11.Display, _focusProxy._handle, 0, IntPtr.Zero);
             }
         }
 

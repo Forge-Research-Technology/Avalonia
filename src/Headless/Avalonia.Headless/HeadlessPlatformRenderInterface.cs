@@ -53,6 +53,7 @@ namespace Avalonia.Headless
 
         public IRenderTarget CreateRenderTarget(IEnumerable<object> surfaces) => new HeadlessRenderTarget();
         public bool IsLost => false;
+        public IReadOnlyDictionary<Type, object> PublicFeatures { get; } = new Dictionary<Type, object>();
         public object? TryGetFeature(Type featureType) => null;
 
         public IRenderTargetBitmapImpl CreateRenderTargetBitmap(PixelSize size, Vector dpi)
@@ -404,7 +405,10 @@ namespace Avalonia.Headless
 
             public Vector Dpi { get; }
             public PixelSize PixelSize { get; }
+            public PixelFormat? Format { get; }
+            public AlphaFormat? AlphaFormat { get; }
             public int Version { get; set; }
+
             public void Save(string fileName, int? quality = null)
             {
 
@@ -415,7 +419,6 @@ namespace Avalonia.Headless
 
             }
 
-            public PixelFormat? Format { get; }
 
             public ILockedFramebuffer Lock()
             {

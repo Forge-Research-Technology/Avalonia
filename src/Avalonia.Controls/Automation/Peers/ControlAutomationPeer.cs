@@ -98,8 +98,8 @@ namespace Avalonia.Automation.Peers
                 if (child is Control c)
                 {
                     var peer = GetOrCreate(c);
-
-                    result.Add(peer);
+                    if (c.IsVisible)
+                        result.Add(peer);
                 }
             }
 
