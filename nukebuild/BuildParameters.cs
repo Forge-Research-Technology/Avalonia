@@ -25,9 +25,12 @@ public partial class Build
 
     [Parameter(Name = "api-baseline")]
     public string ApiValidationBaseline { get; set; }
-    
+
     [Parameter(Name = "update-api-suppression")]
     public bool? UpdateApiValidationSuppression { get; set; }
+
+    [Parameter(Name = "version-output-dir")]
+    public AbsolutePath VersionOutputDir { get; set; }
 
     public class BuildParameters
     {
@@ -52,7 +55,10 @@ public partial class Build
         public bool IsMyGetRelease { get; }
         public bool IsNuGetRelease { get; }
         public bool PublishTestResults { get; }
-        public string Version { get; }
+        public string Version { get; set; }
+        public const string LocalBuildVersion = "9999.0.0-localbuild";
+        public bool IsPackingToLocalCache { get; private set; }
+
         public AbsolutePath ArtifactsDir { get; }
         public AbsolutePath NugetIntermediateRoot { get; }
         public AbsolutePath NugetRoot { get; }
@@ -66,8 +72,9 @@ public partial class Build
         public string ApiValidationBaseline { get; }
         public bool UpdateApiValidationSuppression { get; }
         public AbsolutePath ApiValidationSuppressionFiles { get; }
+        public AbsolutePath VersionOutputDir { get; }
 
-        public BuildParameters(Build b)
+        public BuildParameters(Build b, bool isPackingToLocalCache)
         {
             // ARGUMENTS
             Configuration = b.Configuration ?? "Release";
@@ -75,6 +82,8 @@ public partial class Build
             SkipPreviewer = b.SkipPreviewer;
 
             // CONFIGURATION
+
+            MainRepo = "https://github.com/Altua/Avalonia";
             MasterBranch = "refs/heads/main";
             ReleaseBranchRegex = new("^refs/heads/release/[0-9]+$");
 
@@ -128,6 +137,12 @@ public partial class Build
 
                 PublishTestResults = true;
             }
+            
+            if (isPackingToLocalCache)
+            {
+                IsPackingToLocalCache = true;
+                Version = LocalBuildVersion;
+            }
 
             // DIRECTORIES
             ArtifactsDir = RootDirectory / "artifacts";
@@ -141,6 +156,7 @@ public partial class Build
             ZipCoreArtifacts = ZipRoot / ("Avalonia-" + FileZipSuffix);
             ZipNuGetArtifacts = ZipRoot / ("Avalonia-NuGet-" + FileZipSuffix);
             ApiValidationSuppressionFiles = RootDirectory / "api";
+            VersionOutputDir = b.VersionOutputDir;
         }
 
         string GetVersion()

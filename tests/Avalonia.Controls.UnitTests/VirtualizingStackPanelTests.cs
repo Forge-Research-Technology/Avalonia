@@ -1130,7 +1130,7 @@ namespace Avalonia.Controls.UnitTests
             {
                 ev.Container.AddHandler(Control.RequestBringIntoViewEvent, (_, e) =>
                 {
-                    var dataContext = e.TargetObject.DataContext as ItemWithHeight;
+                    var dataContext = (ItemWithHeight)e.TargetObject!.DataContext!;
                     e.TargetRect = new Rect(dataContext.Height - 50, 0, 50, 10);
                 });
             };
@@ -1291,18 +1291,6 @@ namespace Avalonia.Controls.UnitTests
                 Template = new FuncControlTemplate<T>((_, ns) => scroll.RegisterInNameScope(ns)),
                 ItemsPanel = new FuncTemplate<Panel?>(() => target),
                 ItemTemplate = itemTemplate.GetValueOrDefault(DefaultItemTemplate()),
-                // master branch doesn't have this code, because ContentControl delivered controls always have a template there. 
-                ItemContainerTheme = new ControlTheme(typeof(ListBoxItem))
-                {
-                    Setters =
-                    {
-                        new Setter(TemplatedControl.TemplateProperty, new FuncControlTemplate((_, ns) => new ContentPresenter
-                        {
-                            Name = "PART_ContentPresenter",
-                            [~ListBoxItem.ContentProperty] = new TemplateBinding(ListBoxItem.ContentProperty),
-                        }.RegisterInNameScope(ns)))
-                    }
-                }
             };
 
             return (target, scroll, itemsControl);

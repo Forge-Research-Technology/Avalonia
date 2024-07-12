@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Avalonia.Logging;
 using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Rendering.Composition.Transport;
 
 namespace Avalonia.Rendering.Composition.Server;
 
-internal class ServerCompositionCustomVisual : ServerCompositionContainerVisual, IServerClockItem
+internal sealed class ServerCompositionCustomVisual : ServerCompositionContainerVisual, IServerClockItem
 {
     private readonly CompositionCustomVisualHandler _handler;
     private bool _wantsNextAnimationFrameAfterTick;
@@ -16,15 +18,13 @@ internal class ServerCompositionCustomVisual : ServerCompositionContainerVisual,
         _handler.Attach(this);
     }
 
-    protected override void DeserializeChangesCore(BatchStreamReader reader, TimeSpan committedAt)
+    public void DispatchMessages(List<object> messages)
     {
-        base.DeserializeChangesCore(reader, committedAt);
-        var count = reader.Read<int>();
-        for (var c = 0; c < count; c++)
+        foreach(var message in messages)
         {
             try
             {
-                _handler.OnMessage(reader.ReadObject()!);
+                _handler.OnMessage(message);
             }
             catch (Exception e)
             {
@@ -42,7 +42,7 @@ internal class ServerCompositionCustomVisual : ServerCompositionContainerVisual,
             Compositor.RemoveFromClock(this);
     }
 
-    public override Rect OwnContentBounds => _handler.GetRenderBounds();
+    public override LtrbRect OwnContentBounds => new(_handler.GetRenderBounds());
 
     protected override void OnAttachedToRoot(ServerCompositionTarget target)
     {
@@ -58,6 +58,11 @@ internal class ServerCompositionCustomVisual : ServerCompositionContainerVisual,
     }
 
     internal void HandlerInvalidate() => ValuesInvalidated();
+
+    internal void HandlerInvalidate(Rect rc)
+    {
+        Root?.AddDirtyRect(new LtrbRect(rc).TransformToAABB(GlobalTransformMatrix));
+    }
     
     internal void HandlerRegisterForNextAnimationFrameUpdate()
     {
@@ -66,17 +71,21 @@ internal class ServerCompositionCustomVisual : ServerCompositionContainerVisual,
             Compositor.AddToClock(this);
     }
 
-    protected override void RenderCore(CompositorDrawingContextProxy canvas, Rect currentTransformedClip)
+    protected override void RenderCore(CompositorDrawingContextProxy canvas, LtrbRect currentTransformedClip,
+        IDirtyRectTracker dirtyRects)
     {
-        using var context = new ImmediateDrawingContext(canvas, false);
+        canvas.AutoFlush = true;
+        using var context = new ImmediateDrawingContext(canvas, GlobalTransformMatrix, false);
         try
         {
-            _handler.OnRender(context);
+            _handler.Render(context, currentTransformedClip.ToRect());
         }
         catch (Exception e)
         {
             Logger.TryGet(LogEventLevel.Error, LogArea.Visual)
                 ?.Log(_handler, $"Exception in {_handler.GetType().Name}.{nameof(CompositionCustomVisualHandler.OnRender)} {{0}}", e);
         }
+
+        canvas.AutoFlush = false;
     }
 }

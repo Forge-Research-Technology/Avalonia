@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -176,7 +177,7 @@ public class DispatcherOperation
         GetTask().GetAwaiter().GetResult();
     }
 
-    private class DispatcherOperationFrame : DispatcherFrame
+    private sealed class DispatcherOperationFrame : DispatcherFrame
     {
         // Note: we pass "exitWhenRequested=false" to the base
         // DispatcherFrame construsctor because we do not want to exit
@@ -224,8 +225,8 @@ public class DispatcherOperation
 
         private void OnCompletedOrAborted(object? sender, EventArgs e) => Exit();
 
-        private DispatcherOperation _operation;
-        private Timer? _waitTimer;
+        private readonly DispatcherOperation _operation;
+        private readonly Timer? _waitTimer;
     }
 
     public Task GetTask() => GetTaskCore();
@@ -289,13 +290,17 @@ public class DispatcherOperation
         {
             lock (Dispatcher.InstanceLock)
             {
+                // Ensure TaskSource created.
+                _ = GetTaskCore();
                 Status = DispatcherOperationStatus.Completed;
                 if (TaskSource is TaskCompletionSource<object?> tcs)
                     tcs.SetException(e);
             }
 
-            if (ThrowOnUiThread)
+            if (ThrowOnUiThread && !Dispatcher.TryCatchWhen(e))
+            {
                 throw;
+            }
         }
     }
 
@@ -318,10 +323,11 @@ public class DispatcherOperation
         {
             if (Status == DispatcherOperationStatus.Aborted)
                 return s_abortedTask;
+            if (TaskSource is TaskCompletionSource<object?> tcs)
+                return tcs.Task;
             if (Status == DispatcherOperationStatus.Completed)
                 return Task.CompletedTask;
-            if (TaskSource is not TaskCompletionSource<object?> tcs)
-                TaskSource = tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskSource = tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
             return tcs.Task;
         }
     }
@@ -379,7 +385,7 @@ public class DispatcherOperation<T> : DispatcherOperation
     }
 }
 
-internal class SendOrPostCallbackDispatcherOperation : DispatcherOperation
+internal sealed class SendOrPostCallbackDispatcherOperation : DispatcherOperation
 {
     private readonly object? _arg;
 
@@ -407,13 +413,17 @@ internal class SendOrPostCallbackDispatcherOperation : DispatcherOperation
         {
             lock (Dispatcher.InstanceLock)
             {
+                // Ensure TaskSource created.
+                _ = GetTaskCore();
                 Status = DispatcherOperationStatus.Completed;
                 if (TaskSource is TaskCompletionSource<object?> tcs)
                     tcs.SetException(e);
             }
 
-            if (ThrowOnUiThread)
+            if (ThrowOnUiThread && !Dispatcher.TryCatchWhen(e))
+            {
                 throw;
+            }
         }
     }
 }

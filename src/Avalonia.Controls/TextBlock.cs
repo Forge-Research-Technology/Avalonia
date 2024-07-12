@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Text;
 using Avalonia.Automation.Peers;
 using Avalonia.Collections;
 using Avalonia.Controls.Documents;
@@ -8,13 +8,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Metadata;
+using Avalonia.Utilities;
 
 namespace Avalonia.Controls
 {
     /// <summary>
     /// A control that displays a block of text.
     /// </summary>
-    [DebuggerDisplay("Text = {" + nameof(DebugText) + "}")]
     public class TextBlock : Control, IInlineHost
     {
         /// <summary>
@@ -54,7 +54,7 @@ namespace Avalonia.Controls
             TextElement.FontWeightProperty.AddOwner<TextBlock>();
 
         /// <summary>
-        /// Defines the <see cref="FontWeight"/> property.
+        /// Defines the <see cref="FontStretch"/> property.
         /// </summary>
         public static readonly StyledProperty<FontStretch> FontStretchProperty =
             TextElement.FontStretchProperty.AddOwner<TextBlock>();
@@ -149,6 +149,12 @@ namespace Avalonia.Controls
             Inline.TextDecorationsProperty.AddOwner<TextBlock>();
 
         /// <summary>
+        /// Defines the <see cref="FontFeatures"/> property.
+        /// </summary>
+        public static readonly StyledProperty<FontFeatureCollection?> FontFeaturesProperty =
+            TextElement.FontFeaturesProperty.AddOwner<TextBlock>();
+
+        /// <summary>
         /// Defines the <see cref="Inlines"/> property.
         /// </summary>
         public static readonly DirectProperty<TextBlock, InlineCollection?> InlinesProperty =
@@ -156,8 +162,8 @@ namespace Avalonia.Controls
                 nameof(Inlines), t => t.Inlines, (t, v) => t.Inlines = v);
 
         private TextLayout? _textLayout;
-        private Size _constraint;
-        private IReadOnlyList<TextRun>? _textRuns;
+        protected Size _constraint;
+        protected IReadOnlyList<TextRun>? _textRuns;
         private InlineCollection? _inlines;
 
         public Size Constraint => _constraint;
@@ -214,8 +220,6 @@ namespace Avalonia.Controls
             get => GetValue(TextProperty);
             set => SetValue(TextProperty, value);
         }
-
-        private string? DebugText => Text ?? Inlines?.Text;
 
         /// <summary>
         /// Gets or sets the font family used to draw the control's text.
@@ -341,6 +345,15 @@ namespace Avalonia.Controls
         {
             get => GetValue(TextDecorationsProperty);
             set => SetValue(TextDecorationsProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the font features.
+        /// </summary>
+        public FontFeatureCollection? FontFeatures
+        {
+            get => GetValue(FontFeaturesProperty);
+            set => SetValue(FontFeaturesProperty, value);
         }
 
         /// <summary>
@@ -639,6 +652,7 @@ namespace Avalonia.Controls
 
             var defaultProperties = new GenericTextRunProperties(
                 typeface,
+                FontFeatures,
                 FontSize,
                 TextDecorations,
                 Foreground);
@@ -798,6 +812,7 @@ namespace Avalonia.Controls
 
                 case nameof(Text):
                 case nameof(TextDecorations):
+                case nameof(FontFeatures):
                 case nameof(Foreground):
                     {
                         InvalidateTextLayout();
@@ -848,7 +863,17 @@ namespace Avalonia.Controls
 
         IAvaloniaList<Visual> IInlineHost.VisualChildren => VisualChildren;
 
-        public readonly record struct SimpleTextSource : ITextSource
+        internal override void BuildDebugDisplay(StringBuilder builder, bool includeContent)
+        {
+            base.BuildDebugDisplay(builder, includeContent);
+
+            if (includeContent)
+            {
+                DebugDisplayHelper.AppendOptionalValue(builder, nameof(Text), Text ?? Inlines?.Text, true);
+            }
+        }
+
+        protected readonly record struct SimpleTextSource : ITextSource
         {
             private readonly string _text;
             private readonly TextRunProperties _defaultProperties;
@@ -882,10 +907,12 @@ namespace Avalonia.Controls
 #pragma warning restore CA1815
         {
             private readonly IReadOnlyList<TextRun> _textRuns;
+            private readonly IReadOnlyList<ValueSpan<TextRunProperties>>? _textModifier;
 
-            public InlinesTextSource(IReadOnlyList<TextRun> textRuns)
+            public InlinesTextSource(IReadOnlyList<TextRun> textRuns, IReadOnlyList<ValueSpan<TextRunProperties>>? textModifier = null)
             {
                 _textRuns = textRuns;
+                _textModifier = textModifier;
             }
 
             public IReadOnlyList<TextRun> TextRuns => _textRuns;
@@ -908,11 +935,13 @@ namespace Avalonia.Controls
                         continue;
                     }
 
-                    if (textRun is TextCharacters)
+                    if (textRun is TextCharacters textCharacters)
                     {
                         var skip = Math.Max(0, textSourceIndex - currentPosition);
 
-                        return new TextCharacters(textRun.Text.Slice(skip), textRun.Properties!);
+                        var textStyleRun = FormattedTextSource.CreateTextStyleRun(textRun.Text.Slice(skip).Span, textSourceIndex, textCharacters.Properties, _textModifier);
+
+                        return new TextCharacters(textRun.Text.Slice(skip, textStyleRun.Length), textStyleRun.Value);
                     }
 
                     return textRun;
@@ -920,6 +949,6 @@ namespace Avalonia.Controls
 
                 return new TextEndOfParagraph();
             }
-        }
+         }
     }
 }

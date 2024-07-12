@@ -133,10 +133,7 @@ namespace Avalonia.Controls.Documents
         /// </summary>
         protected void Invalidate()
         {
-            if (InlineHost != null)
-            {
-                InlineHost.Invalidate();
-            }
+            InlineHost?.Invalidate();
 
             Invalidated?.Invoke(this, EventArgs.Empty);
         }
@@ -162,6 +159,8 @@ namespace Avalonia.Controls.Documents
         {
             foreach (var child in this)
             {
+                child.InlineHost = newValue;
+
                 if (child is not InlineUIContainer container)
                 {
                     continue;

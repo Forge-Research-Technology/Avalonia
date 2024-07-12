@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.Data;
 
 namespace Avalonia
@@ -95,6 +94,7 @@ namespace Avalonia
                 enableDataValidation: enableDataValidation);
 
             metadata.Merge(GetMetadata<TOwner>(), this);
+            metadata.Freeze();
 
             var result = new DirectProperty<TNewOwner, TValue>(
                 (DirectPropertyBase<TValue>)this,
@@ -141,6 +141,12 @@ namespace Avalonia
             }
 
             Setter((TOwner)instance, (TValue)value!);
+        }
+
+        object? IDirectPropertyAccessor.GetUnsetValue(Type type)
+        {
+            var metadata = GetMetadata(type);
+            return metadata.UnsetValue;
         }
     }
 }

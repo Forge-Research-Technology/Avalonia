@@ -12,10 +12,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Input.Raw;
 using Avalonia.Media.Imaging;
 using Avalonia.Native.Interop;
-using Avalonia.OpenGL;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
-using Avalonia.Rendering;
+using Avalonia.Platform.Storage.FileIO;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 
@@ -60,7 +59,6 @@ namespace Avalonia.Native
         private readonly IKeyboardDevice _keyboard;
         private readonly ICursorFactory _cursorFactory;
         private Size _savedLogicalSize;
-        private Size _lastRenderedLogicalSize;
         private double _savedScaling;
         private NativeControlHostImpl _nativeControlHost;
         private IStorageProvider _storageProvider;
@@ -145,7 +143,7 @@ namespace Avalonia.Native
         class FramebufferRenderTarget : IFramebufferRenderTarget
         {
             private readonly WindowBaseImpl _parent;
-            private IAvnSoftwareRenderTarget? _target;
+            private IAvnSoftwareRenderTarget _target;
 
             public FramebufferRenderTarget(WindowBaseImpl parent, IAvnSoftwareRenderTarget target)
             {
@@ -174,7 +172,6 @@ namespace Avalonia.Native
                         if (_parent._native != null && _target != null)
                         {
                             cb(_parent._native);
-                            _parent._lastRenderedLogicalSize = _parent._savedLogicalSize;
                         }
                     }
                 }, (int)w, (int)h, new Vector(dpi, dpi));
@@ -636,6 +633,11 @@ namespace Avalonia.Native
             if (featureType == typeof(IClipboard))
             {
                 return AvaloniaLocator.Current.GetRequiredService<IClipboard>();
+            }
+
+            if (featureType == typeof(ILauncher))
+            {
+                return new BclLauncher();
             }
 
             return null;

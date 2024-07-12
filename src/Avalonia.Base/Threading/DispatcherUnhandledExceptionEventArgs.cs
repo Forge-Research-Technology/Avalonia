@@ -1,20 +1,55 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using Avalonia.Interactivity;
 
-namespace Avalonia.Threading
+namespace Avalonia.Threading;
+
+/// <summary>
+/// Represents the method that will handle the <see cref="Dispatcher.UnhandledException"/> event.
+/// </summary>
+public delegate void DispatcherUnhandledExceptionEventHandler(object sender, DispatcherUnhandledExceptionEventArgs e);
+
+/// <summary>
+/// Provides data for the <see cref="Dispatcher.UnhandledException"/> event.
+/// </summary>
+public sealed class DispatcherUnhandledExceptionEventArgs : DispatcherEventArgs
 {
-    public class DispatcherUnhandledExceptionEventArgs : EventArgs
+    private Exception _exception;
+    private bool _handled;
+
+    internal DispatcherUnhandledExceptionEventArgs(Dispatcher dispatcher) : base(dispatcher)
     {
-        public DispatcherUnhandledExceptionEventArgs(Exception exception)
+        _exception = null!;
+    }
+
+    /// <summary>
+    /// Gets the exception that was raised when executing code by way of the dispatcher.
+    /// </summary>
+    public Exception Exception => _exception;
+    
+    /// <summary>
+    /// Gets or sets whether the exception event has been handled.
+    /// </summary>
+    public bool Handled
+    {
+        get
         {
-            Exception = exception;
+            return _handled;
         }
+        set
+        {
+            // Only allow to be set true.
+            if (value)
+            {
+                _handled = value;
+            }
+        }
+    }
 
-        public Exception Exception { get; }
-
-        public bool IsHandled { get; set; }
+    internal void Initialize(Exception exception, bool handled)
+    {
+        Debug.Assert(exception != null);
+        _exception = exception;
+        _handled = handled;
     }
 }

@@ -19,7 +19,7 @@ namespace Avalonia.Android.Platform
             _navigationService = navigationService;
         }
 
-        private void OnBackRequested(object sender, AndroidBackRequestedEventArgs e)
+        private void OnBackRequested(object? sender, AndroidBackRequestedEventArgs e)
         {
             var routedEventArgs = new RoutedEventArgs();
 

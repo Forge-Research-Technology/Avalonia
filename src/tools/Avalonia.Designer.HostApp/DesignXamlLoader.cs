@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using Avalonia.Markup.Xaml;
@@ -8,6 +9,7 @@ using TinyJson;
 
 namespace Avalonia.Designer.HostApp;
 
+[RequiresUnreferencedCode(XamlX.TrimmingMessages.DynamicXamlReference)]
 class DesignXamlLoader : AvaloniaXamlLoader.IRuntimeXamlLoader
 {
     public object Load(RuntimeXamlLoaderDocument document, RuntimeXamlLoaderConfiguration configuration)

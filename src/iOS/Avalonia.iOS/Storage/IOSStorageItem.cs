@@ -9,8 +9,6 @@ using Foundation;
 
 using UIKit;
 
-#nullable enable
-
 namespace Avalonia.iOS.Storage;
 
 internal abstract class IOSStorageItem : IStorageBookmarkItem
@@ -30,6 +28,13 @@ internal abstract class IOSStorageItem : IStorageBookmarkItem
                 ?? url.FilePathUrl?.LastPathComponent
                 ?? string.Empty;
         }
+    }
+    
+    public static IStorageItem CreateItem(NSUrl url, NSUrl? securityScopedAncestorUrl = null)
+    {
+        return url.HasDirectoryPath ?
+            new IOSStorageFolder(url, securityScopedAncestorUrl) :
+            new IOSStorageFile(url, securityScopedAncestorUrl);
     }
 
     internal NSUrl Url { get; }
@@ -53,7 +58,15 @@ internal abstract class IOSStorageItem : IStorageBookmarkItem
             Logger.TryGet(LogEventLevel.Error, LogArea.IOSPlatform)?.
                 Log(this, "GetBasicPropertiesAsync returned an error: {ErrorCode} {ErrorMessage}", error.Code, error.LocalizedFailureReason);
         }
-        return Task.FromResult(new StorageItemProperties(attributes?.Size, (DateTime)attributes?.CreationDate, (DateTime)attributes?.ModificationDate));
+
+        var properties = attributes is null ?
+            new StorageItemProperties() :
+            new StorageItemProperties(
+                attributes.Size,
+                attributes.CreationDate is { } creationDate ? (DateTime)creationDate : null,
+                attributes.ModificationDate is { } modificationDate ? (DateTime)modificationDate : null);
+
+        return Task.FromResult(properties);
     }
 
     public Task<IStorageFolder?> GetParentAsync()
@@ -77,7 +90,7 @@ internal abstract class IOSStorageItem : IStorageBookmarkItem
         }
     }
 
-    public async Task<IStorageItem?> MoveAsync(IStorageFolder destination)
+    public Task<IStorageItem?> MoveAsync(IStorageFolder destination)
     {
         if (destination is not IOSStorageFolder folder)
         {
@@ -94,9 +107,9 @@ internal abstract class IOSStorageItem : IStorageBookmarkItem
 
             if (NSFileManager.DefaultManager.Move(Url, newPath, out var error))
             {
-                return isDir
+                return Task.FromResult<IStorageItem?>(isDir
                     ? new IOSStorageFolder(newPath)
-                    : new IOSStorageFile(newPath);
+                    : new IOSStorageFile(newPath));
             }
 
             if (error is not null)
@@ -104,7 +117,7 @@ internal abstract class IOSStorageItem : IStorageBookmarkItem
                 throw new NSErrorException(error);
             }
 
-            return null;
+            return Task.FromResult<IStorageItem?>(null);
         }
         finally
         {
@@ -155,7 +168,7 @@ internal sealed class IOSStorageFile : IOSStorageItem, IStorageBookmarkFile
     public IOSStorageFile(NSUrl url, NSUrl? securityScopedAncestorUrl = null) : base(url, securityScopedAncestorUrl)
     {
     }
-    
+
     public Task<Stream> OpenReadAsync()
     {
         return Task.FromResult<Stream>(new IOSSecurityScopedStream(Url, SecurityScopedAncestorUrl, FileAccess.Read));
@@ -172,6 +185,13 @@ internal sealed class IOSStorageFolder : IOSStorageItem, IStorageBookmarkFolder
     public IOSStorageFolder(NSUrl url, NSUrl? securityScopedAncestorUrl = null) : base(url, securityScopedAncestorUrl)
     {
     }
+
+    public IOSStorageFolder(NSUrl url, WellKnownFolder wellKnownFolder) : base(url, null)
+    {
+        WellKnownFolder = wellKnownFolder;
+    }
+
+    public WellKnownFolder? WellKnownFolder { get; }
 
     public async IAsyncEnumerable<IStorageItem> GetItemsAsync()
     {
@@ -195,9 +215,7 @@ internal sealed class IOSStorageFolder : IOSStorageItem, IStorageBookmarkFolder
                     else
                     {
                         var items = content
-                            .Select(u => u.HasDirectoryPath ?
-                                (IStorageItem)new IOSStorageFolder(u, SecurityScopedAncestorUrl) :
-                                new IOSStorageFile(u, SecurityScopedAncestorUrl))
+                            .Select(u => CreateItem(u, SecurityScopedAncestorUrl))
                             .ToArray();
                         tcs.TrySetResult(items);
                     }

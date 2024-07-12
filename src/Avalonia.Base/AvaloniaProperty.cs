@@ -50,7 +50,10 @@ namespace Avalonia
             AvaloniaPropertyMetadata metadata,
             Action<AvaloniaObject, bool>? notifying = null)
         {
-            _ = name ?? throw new ArgumentNullException(nameof(name));
+            ThrowHelper.ThrowIfNull(name, nameof(name));
+            ThrowHelper.ThrowIfNull(valueType, nameof(valueType));
+            ThrowHelper.ThrowIfNull(ownerType, nameof(ownerType));
+            ThrowHelper.ThrowIfNull(metadata, nameof(metadata));
 
             if (name.Contains('.'))
             {
@@ -60,12 +63,13 @@ namespace Avalonia
             _metadata = new Dictionary<Type, AvaloniaPropertyMetadata>();
 
             Name = name;
-            PropertyType = valueType ?? throw new ArgumentNullException(nameof(valueType));
-            OwnerType = ownerType ?? throw new ArgumentNullException(nameof(ownerType));
+            PropertyType = valueType;
+            OwnerType = ownerType;
             Notifying = notifying;
             Id = s_nextId++;
 
-            _metadata.Add(hostType, metadata ?? throw new ArgumentNullException(nameof(metadata)));
+            metadata.Freeze();
+            _metadata.Add(hostType, metadata);
             _defaultMetadata = metadata.GenerateTypeSafeMetadata();
             _singleMetadata = new(hostType, metadata);
         }
@@ -223,6 +227,11 @@ namespace Avalonia
             return !(a == b);
         }
 
+        public void Unregister(Type type)
+        {
+            _metadata.Remove(type);
+            _metadataCache.Remove(type);
+        }
         /// <summary>
         /// Registers a <see cref="AvaloniaProperty"/>.
         /// </summary>
@@ -266,7 +275,7 @@ namespace Avalonia
         }
 
         /// <summary>
-        /// Registers an attached <see cref="AvaloniaProperty"/>.
+        /// Registers a <see cref="AvaloniaProperty"/>.
         /// </summary>
         /// <typeparam name="TOwner">The type of the class that is registering the property.</typeparam>
         /// <typeparam name="TValue">The type of the property's value.</typeparam>
@@ -543,6 +552,14 @@ namespace Avalonia
         internal abstract void RouteSetCurrentValue(AvaloniaObject o, object? value);
 
         /// <summary>
+        /// Routes an untyped SetDirectValueUnchecked call to a typed call.
+        /// </summary>
+        /// <param name="o">The object instance.</param>
+        /// <param name="value">The value.</param>
+        internal virtual void RouteSetDirectValueUnchecked(AvaloniaObject o, object? value) =>
+            throw new NotSupportedException();
+
+        /// <summary>
         /// Routes an untyped Bind call to a typed call.
         /// </summary>
         /// <param name="o">The object instance.</param>
@@ -571,6 +588,7 @@ namespace Avalonia
 
             var baseMetadata = GetMetadata(type);
             metadata.Merge(baseMetadata, this);
+            metadata.Freeze();
             _metadata.Add(type, metadata);
             _metadataCache.Clear();
 

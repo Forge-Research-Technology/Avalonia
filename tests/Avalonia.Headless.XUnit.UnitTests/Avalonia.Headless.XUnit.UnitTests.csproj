@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>$(AvsCurrentTargetFramework)</TargetFramework>
     <IsTestProject>true</IsTestProject>
     <DefineConstants>$(DefineConstants);XUNIT</DefineConstants>
   </PropertyGroup>

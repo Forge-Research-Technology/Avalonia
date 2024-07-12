@@ -56,7 +56,8 @@ namespace Avalonia.Input
     public class Cursor : IDisposable
     {
         public static readonly Cursor Default = new Cursor(StandardCursorType.Arrow);
-        private string _name;
+
+        private readonly string _name;
         private ScaledCursor[]? _scaledImages;
         private int _loadedScaleIndex = 0;
 

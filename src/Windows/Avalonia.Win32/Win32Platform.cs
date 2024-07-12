@@ -106,6 +106,8 @@ namespace Avalonia.Win32
                 s_instance.Destroy();
                 OffscreenParentWindow.Destroy();
             });
+            
+            SetDpiAwareness();
 
             var renderTimer = options.ShouldRenderOnUIThread ? new UiThreadRenderTimer(60) : new DefaultRenderTimer(60);
 
@@ -262,13 +264,13 @@ namespace Avalonia.Win32
         {
             using (var stream = File.OpenRead(fileName))
             {
-                return CreateIconImpl(stream);
+                return new IconImpl(stream);
             }
         }
 
         public IWindowIconImpl LoadIcon(Stream stream)
         {
-            return CreateIconImpl(stream);
+            return new IconImpl(stream);
         }
 
         public IWindowIconImpl LoadIcon(IBitmapImpl bitmap)
@@ -276,18 +278,9 @@ namespace Avalonia.Win32
             using (var memoryStream = new MemoryStream())
             {
                 bitmap.Save(memoryStream);
-                var iconData = memoryStream.ToArray();
-                return new IconImpl(new Win32Icon(iconData), iconData);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                return new IconImpl(memoryStream);
             }
-        }
-
-        private static IconImpl CreateIconImpl(Stream stream)
-        {
-            var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            ms.Position = 0;
-            var iconData = ms.ToArray();
-            return new IconImpl(new Win32Icon(iconData), iconData);
         }
 
         private static bool SetDpiAwareness()
@@ -298,12 +291,31 @@ namespace Avalonia.Win32
             var user32 = LoadLibrary("user32.dll");
             var method = GetProcAddress(user32, nameof(SetProcessDpiAwarenessContext));
 
+            var dpiAwareness = Options.DpiAwareness;
+
             if (method != IntPtr.Zero)
             {
-                if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ||
-                    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
+                if (dpiAwareness == Win32DpiAwareness.Unaware)
                 {
-                    return true;
+                    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE))
+                    {
+                        return;
+                    }
+                }
+                else if (dpiAwareness == Win32DpiAwareness.SystemDpiAware)
+                {
+                    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
+                    {
+                        return;
+                    }
+                }
+                else if (dpiAwareness == Win32DpiAwareness.PerMonitorDpiAware)
+                {
+                    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ||
+                    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -312,13 +324,20 @@ namespace Avalonia.Win32
 
             if (method != IntPtr.Zero)
             {
-                SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE);
-                return true;
+                var awareness = (dpiAwareness) switch
+                {
+                    Win32DpiAwareness.Unaware => PROCESS_DPI_AWARENESS.PROCESS_DPI_UNAWARE,
+                    Win32DpiAwareness.SystemDpiAware => PROCESS_DPI_AWARENESS.PROCESS_SYSTEM_DPI_AWARE,
+                    Win32DpiAwareness.PerMonitorDpiAware => PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE,
+                    _ => PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE,
+                };
+
+                SetProcessDpiAwareness(awareness);
+                return;
             }
 
-            SetProcessDPIAware();
-
-            return false;
+            if (dpiAwareness != Win32DpiAwareness.Unaware)
+                SetProcessDPIAware();
         }
     }
 }

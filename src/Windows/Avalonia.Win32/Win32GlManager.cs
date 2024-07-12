@@ -3,9 +3,12 @@ using System.Diagnostics.Tracing;
 using System.Linq;
 using Avalonia.OpenGL;
 using Avalonia.Platform;
+using Avalonia.Vulkan;
+using Avalonia.Win32.DComposition;
 using Avalonia.Win32.DirectX;
 using Avalonia.Win32.OpenGl;
 using Avalonia.Win32.OpenGl.Angle;
+using Avalonia.Win32.Vulkan;
 using Avalonia.Win32.WinRT.Composition;
 
 namespace Avalonia.Win32;
@@ -45,9 +48,9 @@ static class Win32GlManager
                 
             if (renderingMode == Win32RenderingMode.AngleEgl)
             {
-                var egl = AngleWin32PlatformGraphics.TryCreate(AvaloniaLocator.Current.GetService<AngleOptions>() ?? new());
+                var egl = AngleWin32PlatformGraphicsFactory.TryCreate(AvaloniaLocator.Current.GetService<AngleOptions>() ?? new());
 
-                if (egl != null && egl.PlatformApi == AngleOptions.PlatformApi.DirectX11)
+                if (egl is D3D11AngleWin32PlatformGraphics)
                 {
                     TryRegisterComposition(opts);
                     return egl;
@@ -60,6 +63,13 @@ static class Win32GlManager
                 {
                     return wgl;
                 }
+            }
+
+            if (renderingMode == Win32RenderingMode.Vulkan)
+            {
+                var vulkan = VulkanSupport.TryInitialize(AvaloniaLocator.Current.GetService<VulkanOptions>() ?? new());
+                if (vulkan != null)
+                    return vulkan;
             }
         }
 
@@ -83,6 +93,13 @@ static class Win32GlManager
             if (compositionMode == Win32CompositionMode.WinUIComposition
                 && WinUiCompositorConnection.IsSupported()
                 && WinUiCompositorConnection.TryCreateAndRegister(opts.ShutdownCancellationToken))
+            {
+                return;
+            }
+
+            if (compositionMode == Win32CompositionMode.DirectComposition
+                && DirectCompositionConnection.IsSupported()
+                && DirectCompositionConnection.TryCreateAndRegister())
             {
                 return;
             }

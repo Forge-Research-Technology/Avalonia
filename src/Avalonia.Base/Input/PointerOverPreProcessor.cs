@@ -52,10 +52,22 @@ namespace Avalonia.Input
                             args.InputModifiers.ToKeyModifiers());
                     }
                 }
-                else if (pointerDevice.TryGetPointer(args) is { } pointer
-                    && pointer.Type != PointerType.Touch)
+                else if (args.Type is RawPointerEventType.TouchBegin or RawPointerEventType.TouchUpdate && args.Root is Visual visual)
                 {
-                    var element = pointer.Captured ?? args.InputHitTestResult;
+                    _lastKnownPosition = visual.PointToScreen(args.Position);
+                }
+                else if (args.Type is RawPointerEventType.TouchCancel or RawPointerEventType.TouchEnd
+                    && pointerDevice.TryGetPointer(args) is { } p)
+                {
+                    _currentPointer = null;
+                    ClearPointerOver(p, args.Root, 0, args.Position,
+                        new PointerPointProperties(args.InputModifiers, args.Type.ToUpdateKind()),
+                        args.InputModifiers.ToKeyModifiers());
+                }
+                else if (pointerDevice.TryGetPointer(args) is { } pointer &&
+                    pointer.Type != PointerType.Touch)
+                {
+                    var element = pointer.Captured ?? args.InputHitTestResult.firstEnabledAncestor;
 
                     SetPointerOver(pointer, args.Root, element, args.Timestamp, args.Position,
                         new PointerPointProperties(args.InputModifiers, args.Type.ToUpdateKind()),
