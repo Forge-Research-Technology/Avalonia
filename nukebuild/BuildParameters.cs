@@ -83,7 +83,7 @@ public partial class Build
 
             // CONFIGURATION
 
-            MainRepo = "https://github.com/Altua/Avalonia";
+            RepositoryName = "https://github.com/Altua/Avalonia";
             MasterBranch = "refs/heads/main";
             ReleaseBranchRegex = new("^refs/heads/release/[0-9]+$");
 
