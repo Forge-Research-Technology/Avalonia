@@ -865,25 +865,6 @@ namespace Avalonia.Controls
 #endif
         }
 
-        private void UpdateEnabled()
-        {
-            if (Owner is not Window window)
-                return;
-
-            window.PlatformImpl?.SetEnabled(enabled);
-
-            foreach (var (child, _) in window._children)
-            {
-                if (child == this)
-                    continue;
-
-                child.SetEnabledOnChildren(enabled);
-            }
-
-            if(!window._showingAsDialog)
-                window.SetEnabledOnOwnerAndSiblings(enabled);
-        }
-
         private void SetEnabledOnChildren(bool enabled)
         {
             PlatformImpl?.SetEnabled(enabled);
