@@ -262,12 +262,6 @@ public class DispatcherOperation
             using (AvaloniaSynchronizationContext.Ensure(Dispatcher, Priority))
                 InvokeCore();
         }
-        catch(Exception exception)
-        {
-            var isHandled = Dispatcher.HandleUnhandledException(exception);
-            if (!isHandled)
-                throw;
-        }
         finally
         {
             _completed?.Invoke(this, EventArgs.Empty);
