@@ -135,7 +135,7 @@ jobs:
     displayName: 'Install Workloads'
     inputs:
       script: |
-       dotnet workload install android ios wasm-tools wasm-experimental
+       dotnet workload install android ios wasm-tools wasm-experimental wasm-tools-net6
 
   - task: CmdLine@2
     displayName: 'Install Nuke'
