@@ -2509,7 +2509,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct APPBARDATA
+        public struct APPBARDATA
         {
             private static readonly int s_size = Marshal.SizeOf<APPBARDATA>();
 
@@ -2617,7 +2617,7 @@ namespace Avalonia.Win32.Interop
         SETVERSION = 0x00000004
     }
 
-    internal enum AppBarMessage : uint
+    public enum AppBarMessage : uint
     {
         ABM_GETSTATE = 0x00000004,
         ABM_GETTASKBARPOS = 0x00000005,
