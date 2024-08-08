@@ -299,14 +299,14 @@ namespace Avalonia.Win32
                 {
                     if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE))
                     {
-                        return;
+                        return false;
                     }
                 }
                 else if (dpiAwareness == Win32DpiAwareness.SystemDpiAware)
                 {
                     if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
                     {
-                        return;
+                        return false;
                     }
                 }
                 else if (dpiAwareness == Win32DpiAwareness.PerMonitorDpiAware)
@@ -314,7 +314,7 @@ namespace Avalonia.Win32
                     if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ||
                     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
                     {
-                        return;
+                        return true;
                     }
                 }
             }
@@ -333,11 +333,13 @@ namespace Avalonia.Win32
                 };
 
                 SetProcessDpiAwareness(awareness);
-                return;
+                return awareness == PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE;
             }
 
             if (dpiAwareness != Win32DpiAwareness.Unaware)
                 SetProcessDPIAware();
+
+            return false;
         }
     }
 }
