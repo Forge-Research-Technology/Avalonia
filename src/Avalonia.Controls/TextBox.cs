@@ -406,6 +406,8 @@ namespace Avalonia.Controls
             if (IsUndoEnabled && _undoRedoHelper.TryGetLastState(out state) && state.Text == Text)
                 _undoRedoHelper.UpdateLastState();
 
+            using var _ = _imClient.BeginChange();
+
             var newValue = e.GetNewValue<int>();
             SetCurrentValue(SelectionStartProperty, newValue);
             SetCurrentValue(SelectionEndProperty, newValue);
@@ -1218,6 +1220,8 @@ namespace Avalonia.Controls
 
             var keymap = Application.Current!.PlatformSettings!.HotkeyConfiguration;
 
+            using var _ = _imClient.BeginChange();
+
             bool Match(List<KeyGesture> gestures) => gestures.Any(g => g.Matches(e));
             bool DetectSelection() => e.KeyModifiers.HasAllFlags(keymap.SelectionModifiers);
 
@@ -1549,6 +1553,8 @@ namespace Avalonia.Controls
             var text = Text;
             var clickInfo = e.GetCurrentPoint(this);
 
+            using var _ = _imClient.BeginChange();
+
             if (text != null && (e.Pointer.Type == PointerType.Mouse || e.ClickCount >= 2) && clickInfo.Properties.IsLeftButtonPressed &&
                 !(clickInfo.Pointer?.Captured is Border))
             {
@@ -1633,6 +1639,7 @@ namespace Avalonia.Controls
             {
                 return;
             }
+            using var _ = _imClient.BeginChange();
 
             // selection should not change during pointer move if the user right clicks
             if (e.Pointer.Captured == _presenter && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -1715,8 +1722,12 @@ namespace Avalonia.Controls
                 return;
             }
 
+            using var _ = _imClient.BeginChange();
+
             if (e.Pointer.Type != PointerType.Mouse && !_isDoubleTapped)
             {
+                _imClient.ShowInputPanel();
+
                 var text = Text;
                 var clickInfo = e.GetCurrentPoint(this);
                 if (text != null && !(clickInfo.Pointer?.Captured is Border))
@@ -1858,6 +1869,8 @@ namespace Avalonia.Controls
             {
                 return;
             }
+
+            using var _ = _imClient.BeginChange();
 
             var text = Text ?? string.Empty;
             var selectionStart = SelectionStart;
@@ -2024,6 +2037,8 @@ namespace Avalonia.Controls
         /// </summary>
         public void SelectAll()
         {
+            using var _ = _imClient.BeginChange();
+
             SetCurrentValue(SelectionStartProperty, 0);
             SetCurrentValue(SelectionEndProperty, Text?.Length ?? 0);
         }
@@ -2040,6 +2055,8 @@ namespace Avalonia.Controls
         {
             if (IsReadOnly)
                 return true;
+
+            using var _ = _imClient.BeginChange();
 
             var (start, end) = GetSelectionRange();
 
@@ -2148,6 +2165,8 @@ namespace Avalonia.Controls
             var text = Text ?? string.Empty;
             var selectionStart = CaretIndex;
 
+            using var _ = _imClient.BeginChange();
+
             MoveHorizontal(-1, true, false, false);
 
             if (SelectionEnd > 0 &&
@@ -2166,6 +2185,8 @@ namespace Avalonia.Controls
             {
                 return;
             }
+
+            using var _ = _imClient.BeginChange();
 
             SetCurrentValue(SelectionStartProperty, CaretIndex);
 

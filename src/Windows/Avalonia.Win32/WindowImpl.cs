@@ -937,7 +937,7 @@ namespace Avalonia.Win32
 
             RegisterTouchWindow(_hwnd, 0);
 
-            if (ShCoreAvailable && Win32Platform.WindowsVersion > PlatformConstants.Windows8)
+            if (ShCoreAvailable && Win32Platform.WindowsVersion >= PlatformConstants.Windows8_1)
             {
                 var monitor = MonitorFromWindow(
                     _hwnd,
@@ -1399,6 +1399,9 @@ namespace Avalonia.Win32
                 }
 
                 WindowStyles style = WindowStyles.WS_CLIPCHILDREN | WindowStyles.WS_OVERLAPPEDWINDOW | WindowStyles.WS_CLIPSIBLINGS;
+
+                if (this is EmbeddedWindowImpl)
+                    style |= WindowStyles.WS_CHILD;
 
                 if (IsWindowVisible(_hwnd))
                     style |= WindowStyles.WS_VISIBLE;
