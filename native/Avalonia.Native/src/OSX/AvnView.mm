@@ -931,4 +931,9 @@
     _parent->BaseEvents->Deactivated();
 }
 
+- (void)colorPanelWillClose:(NSNotification *)notification {
+    // Stop the modal session and allow application to continue
+    [NSApp stopModal];
+}
+
 @end
