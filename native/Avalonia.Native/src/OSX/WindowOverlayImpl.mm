@@ -18,8 +18,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     [View setFrame:frame];
     lastSize = frame.size;
 
+    this->colorPanel = [NSColorPanel sharedColorPanel];
+    this->colorPanel.showsAlpha = true;
+
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
+    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(colorPanelWillClose:) name:NSWindowDidResignKeyNotification object:this->colorPanel];
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
         //NSLog(@"MONITOR mouseMoved START");
@@ -301,6 +305,33 @@ HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
     
     //NSLog(@"Writing bitmap to file %@", filePath);
     //[bitmapData writeToFile:filePath atomically:YES];
+
+    return S_OK;
+}
+
+HRESULT WindowOverlayImpl::PickColor(AvnColor color, AvnColor* ret) {
+    NSColor* initialColor = this->colorPanel.color;
+    
+    if (color.Alpha != 0 || color.Red != 0 || color.Green != 0 || color.Blue != 0) {
+        this->colorPanel.color = [NSColor colorWithRed:color.Red / 255.0
+                                               green:color.Green / 255.0
+                                                 blue:color.Blue / 255.0
+                                               alpha:color.Alpha / 255.0];
+    }
+
+    [NSApp runModalForWindow:this->colorPanel];
+
+    NSLog(@"Got back color: %@", [this->colorPanel color]);
+
+    if (![initialColor isEqual:this->colorPanel.color]) {
+        ret->Alpha = [this->colorPanel.color alphaComponent] * 255.0;
+        ret->Red = [this->colorPanel.color redComponent] * 255.0;
+        ret->Green = [this->colorPanel.color blueComponent] * 255.0;
+        ret->Blue = [this->colorPanel.color greenComponent] * 255.0;
+    }
+    else {
+        *ret = color;
+    }
 
     return S_OK;
 }

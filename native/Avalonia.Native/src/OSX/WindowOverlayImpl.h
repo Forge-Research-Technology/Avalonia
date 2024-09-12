@@ -11,6 +11,7 @@ private:
     NSWindow* parentWindow;
     NSView* parentView;
     NSView* canvasView;
+    NSColorPanel* colorPanel;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
@@ -24,6 +25,7 @@ public:
     virtual HRESULT GetPosition(AvnPoint *ret) override;
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
+    virtual HRESULT PickColor(AvnColor color, AvnColor* ret) override;
 };
 
 #endif

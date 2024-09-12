@@ -114,7 +114,8 @@ BEGIN_INTERFACE_MAP()
     virtual bool CanZoom() { return false; }
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
-      
+    virtual HRESULT PickColor(AvnColor color, AvnColor* ret) override;
+
 protected:
     NSSize lastSize;
     virtual NSWindowStyleMask CalculateStyleMask() = 0;
