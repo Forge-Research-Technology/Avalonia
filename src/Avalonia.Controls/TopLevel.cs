@@ -467,7 +467,7 @@ namespace Avalonia.Controls
         /// </summary>
         public RendererDiagnostics RendererDiagnostics => Renderer.Diagnostics;
 
-        internal PixelPoint? LastPointerPosition => _pointerOverPreProcessor?.LastPosition;
+        public PixelPoint? LastPointerPosition => _pointerOverPreProcessor?.LastPosition;
         
         /// <summary>
         /// Gets the access key handler for the window.
