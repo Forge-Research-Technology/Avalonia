@@ -23,7 +23,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
-    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(colorPanelWillClose:) name:NSWindowDidResignKeyNotification object:this->colorPanel];
+    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(colorPanelWillClose:) name:NSWindowWillCloseNotification object:this->colorPanel];
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
         //NSLog(@"MONITOR mouseMoved START");
@@ -324,10 +324,10 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, AvnColor* ret) {
     NSLog(@"Got back color: %@", [this->colorPanel color]);
 
     if (![initialColor isEqual:this->colorPanel.color]) {
-        ret->Alpha = [this->colorPanel.color alphaComponent] * 255.0;
-        ret->Red = [this->colorPanel.color redComponent] * 255.0;
-        ret->Green = [this->colorPanel.color blueComponent] * 255.0;
-        ret->Blue = [this->colorPanel.color greenComponent] * 255.0;
+        ret->Alpha = round([this->colorPanel.color alphaComponent] * 255.0);
+        ret->Red = round([this->colorPanel.color redComponent] * 255.0);
+        ret->Green = round([this->colorPanel.color greenComponent] * 255.0);
+        ret->Blue = round([this->colorPanel.color blueComponent] * 255.0);
     }
     else {
         *ret = color;
