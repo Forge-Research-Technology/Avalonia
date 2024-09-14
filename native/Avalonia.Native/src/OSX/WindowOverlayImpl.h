@@ -16,6 +16,7 @@ private:
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
     END_INTERFACE_MAP()
+    void InitializeColorPicker();
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual bool IsOverlay() override;
@@ -25,7 +26,7 @@ public:
     virtual HRESULT GetPosition(AvnPoint *ret) override;
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
-    virtual HRESULT PickColor(AvnColor color, AvnColor* ret) override;
+    virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
 };
 
 #endif

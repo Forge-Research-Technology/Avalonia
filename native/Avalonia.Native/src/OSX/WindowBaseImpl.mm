@@ -692,7 +692,7 @@ HRESULT WindowBaseImpl::TakeScreenshot(void** ret, int* retLength) {
     }
 }
 
-HRESULT WindowBaseImpl::PickColor(AvnColor color, AvnColor* ret) {
+HRESULT WindowBaseImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
     START_COM_CALL;
 
     @autoreleasepool {

@@ -663,7 +663,7 @@ namespace Avalonia.Native
             return new Bitmap(imageBuffer);
         }
 
-        public Color? PickColor(Color? initialColor)
+        public unsafe Color? PickColor(Color? initialColor)
         {
             AvnColor _initialColor = new AvnColor { Alpha = 0, Red = 0, Green = 0, Blue = 0 };
 
@@ -671,9 +671,10 @@ namespace Avalonia.Native
                 _initialColor = new AvnColor { Alpha = initialColor.Value.A, Red = initialColor.Value.R, Green = initialColor.Value.G, Blue = initialColor.Value.B }; 
             }
 
-            AvnColor _outputColor = _native?.PickColor(_initialColor) ?? default;
+            int cancel = 0;
+            AvnColor _outputColor = _native?.PickColor(_initialColor, &cancel) ?? default;
 
-            if (_outputColor.Equals(_initialColor)) {
+            if (cancel != 0) {
                 return null;
             }
 
