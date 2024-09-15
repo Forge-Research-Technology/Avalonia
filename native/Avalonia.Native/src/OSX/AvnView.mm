@@ -936,4 +936,22 @@
     [NSApp stopModal];
 }
 
+- (void)colorPanelOkButtonPressed:(id)sender {
+    // End the modal session with the OK response
+    [NSApp stopModalWithCode:NSModalResponseOK];
+
+    // Close the color panel
+    NSColorPanel *colorPanel = [NSColorPanel sharedColorPanel];
+    [colorPanel orderOut:nil];
+}
+
+- (void)colorPanelCancelButtonPressed:(id)sender {
+    // End the modal session with the Cancel response
+    [NSApp stopModalWithCode:NSModalResponseCancel];
+
+    // Close the color panel
+    NSColorPanel *colorPanel = [NSColorPanel sharedColorPanel];
+    [colorPanel orderOut:nil];
+}
+
 @end
