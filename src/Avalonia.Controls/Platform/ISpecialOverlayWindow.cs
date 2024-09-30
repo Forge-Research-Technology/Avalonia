@@ -2,6 +2,7 @@
 using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Media.Imaging;
+using Color = Avalonia.Media.Color;
 
 namespace Avalonia.Platform
 {
@@ -18,5 +19,7 @@ namespace Avalonia.Platform
         public PixelPoint PPTClipViewOrigin { get; }
 
         public Bitmap TakeScreenshot();
+
+        public Color? PickColor(Color? initialColor);
     }
 }

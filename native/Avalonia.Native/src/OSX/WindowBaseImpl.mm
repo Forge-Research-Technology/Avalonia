@@ -692,6 +692,15 @@ HRESULT WindowBaseImpl::TakeScreenshot(void** ret, int* retLength) {
     }
 }
 
+HRESULT WindowBaseImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
 {
     @autoreleasepool

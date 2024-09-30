@@ -18,6 +18,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     [View setFrame:frame];
     lastSize = frame.size;
 
+    InitializeColorPicker();
+
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
 
@@ -301,6 +303,63 @@ HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
     
     //NSLog(@"Writing bitmap to file %@", filePath);
     //[bitmapData writeToFile:filePath atomically:YES];
+
+    return S_OK;
+}
+
+void WindowOverlayImpl::InitializeColorPicker() {
+    this->colorPanel = [NSColorPanel sharedColorPanel];
+    this->colorPanel.showsAlpha = true;
+
+    // Create a view to serve as the accessory view
+    NSView *accessoryView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, 40)];
+
+    // Create OK button
+    NSButton *okButton = [[NSButton alloc] initWithFrame:NSMakeRect(10, 5, 80, 30)];
+    [okButton setTitle:@"OK"];
+    [okButton setTarget:View];
+    [okButton setAction:@selector(colorPanelOkButtonPressed:)];
+
+    // Create Cancel button
+    NSButton *cancelButton = [[NSButton alloc] initWithFrame:NSMakeRect(110, 5, 80, 30)];
+    [cancelButton setTitle:@"Cancel"];
+    [cancelButton setTarget:View];
+    [cancelButton setAction:@selector(colorPanelCancelButtonPressed:)];
+
+    // Add buttons to the accessory view
+    [accessoryView addSubview:okButton];
+    [accessoryView addSubview:cancelButton];
+
+    // Set the accessory view to the color panel
+    [this->colorPanel setAccessoryView:accessoryView];
+
+    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(colorPanelWillClose:) name:NSWindowWillCloseNotification object:this->colorPanel];
+}
+
+HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
+    NSColor* initialColor = this->colorPanel.color;
+    
+    this->colorPanel.color = [NSColor colorWithRed:color.Red / 255.0
+                                           green:color.Green / 255.0
+                                             blue:color.Blue / 255.0
+                                           alpha:color.Alpha / 255.0];
+
+    NSInteger modalResponse = [NSApp runModalForWindow:colorPanel];
+
+    // Handle different modal responses
+    if (modalResponse == NSModalResponseOK) {
+        NSColor *selectedColor = [this->colorPanel color];
+        NSLog(@"OK pressed, got back color: %@", selectedColor);
+
+        ret->Alpha = round([selectedColor alphaComponent] * 255.0);
+        ret->Red = round([selectedColor redComponent] * 255.0);
+        ret->Green = round([selectedColor greenComponent] * 255.0);
+        ret->Blue = round([selectedColor blueComponent] * 255.0);
+        *cancel = 0;
+    } else {
+        NSLog(@"Modal session was aborted (cancel or window closed manually).");
+        *cancel = 1;
+    }
 
     return S_OK;
 }

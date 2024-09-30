@@ -17,6 +17,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Platform.Storage.FileIO;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
+using Color = Avalonia.Media.Color;
 
 namespace Avalonia.Native
 {
@@ -662,6 +663,24 @@ namespace Avalonia.Native
 
             UnmanagedMemoryStream imageBuffer = new UnmanagedMemoryStream((byte*)bufferData, bufferLength);
             return new Bitmap(imageBuffer);
+        }
+
+        public unsafe Color? PickColor(Color? initialColor)
+        {
+            AvnColor _initialColor = new AvnColor { Alpha = 0, Red = 0, Green = 0, Blue = 0 };
+
+            if (initialColor.HasValue) {
+                _initialColor = new AvnColor { Alpha = initialColor.Value.A, Red = initialColor.Value.R, Green = initialColor.Value.G, Blue = initialColor.Value.B }; 
+            }
+
+            int cancel = 0;
+            AvnColor _outputColor = _native?.PickColor(_initialColor, &cancel) ?? default;
+
+            if (cancel != 0) {
+                return null;
+            }
+
+            return new Color(_outputColor.Alpha, _outputColor.Red, _outputColor.Green, _outputColor.Blue);
         }
     }
 }
