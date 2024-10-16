@@ -23,11 +23,11 @@ namespace ControlCatalog.ViewModels
             CustomCursor = new Cursor(bitmap, new PixelPoint(16, 16));
 
             CustomCursorScaled = new Cursor(
-                new ScaledCursor(new Bitmap(loader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-32.png"))), new PixelPoint(1, 1), 1.0),
-                new ScaledCursor(new Bitmap(loader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-48.png"))), new PixelPoint(1, 1), 1.5),
-                new ScaledCursor(new Bitmap(loader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-64.png"))), new PixelPoint(1, 1), 2.0),
-                new ScaledCursor(new Bitmap(loader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-96.png"))), new PixelPoint(1, 1), 3.0),
-                new ScaledCursor(new Bitmap(loader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-128.png"))), new PixelPoint(1, 1), 4.0)
+                new ScaledCursor(new Bitmap(AssetLoader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-32.png"))), new PixelPoint(1, 1), 1.0),
+                new ScaledCursor(new Bitmap(AssetLoader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-48.png"))), new PixelPoint(1, 1), 1.5),
+                new ScaledCursor(new Bitmap(AssetLoader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-64.png"))), new PixelPoint(1, 1), 2.0),
+                new ScaledCursor(new Bitmap(AssetLoader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-96.png"))), new PixelPoint(1, 1), 3.0),
+                new ScaledCursor(new Bitmap(AssetLoader.Open(new Uri("avares://ControlCatalog/Assets/Duplication-128.png"))), new PixelPoint(1, 1), 4.0)
                 );
         }
 

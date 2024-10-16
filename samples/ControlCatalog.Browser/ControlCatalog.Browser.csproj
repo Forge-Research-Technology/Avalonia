@@ -1,6 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../src/Browser/Avalonia.Browser/Avalonia.Browser.props" />
-
   <PropertyGroup>
     <TargetFramework>$(AvsCurrentBrowserTargetFramework)</TargetFramework>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
@@ -20,12 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <WasmExtraFilesToDeploy Include="AppBundle/**" />
-  </ItemGroup>
-
-  <Import Project="../../src/Browser/Avalonia.Browser/Avalonia.Browser.targets" />
     <WasmExtraFilesToDeploy Include="wwwroot/**" />
   </ItemGroup>
+
 
   <Import Project="../../src/Browser/Avalonia.Browser/build/Avalonia.Browser.props" />
   <Import Project="../../src/Browser/Avalonia.Browser/build/Avalonia.Browser.targets" />
