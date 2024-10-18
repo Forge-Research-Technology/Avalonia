@@ -41,6 +41,8 @@ internal static partial class InputHelper
         [JSMarshalAs<JSType.Function<JSType.Object, JSType.Boolean>>]
         Func<JSObject, bool> pointerCancel,
         [JSMarshalAs<JSType.Function<JSType.Object, JSType.Boolean>>]
+        Func<JSObject, bool> pointerExited,
+        [JSMarshalAs<JSType.Function<JSType.Object, JSType.Boolean>>]
         Func<JSObject, bool> wheel);
 
     [JSImport("InputHelper.subscribeInputEvents", AvaloniaModule.MainModuleName)]

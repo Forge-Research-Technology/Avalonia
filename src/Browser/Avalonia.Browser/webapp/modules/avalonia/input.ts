@@ -161,6 +161,7 @@ export class InputHelper {
         pointerDownCallback: (args: PointerEvent) => boolean,
         pointerUpCallback: (args: PointerEvent) => boolean,
         pointerCancelCallback: (args: PointerEvent) => boolean,
+        mouseLeaveCallback: (args: MouseEvent) => boolean,
         wheelCallback: (args: WheelEvent) => boolean
     ) {
         const pointerMoveHandler = (args: PointerEvent) => {
@@ -183,6 +184,11 @@ export class InputHelper {
             args.preventDefault();
         };
 
+        const mouseLeaveHandler = (args: MouseEvent) => {
+            mouseLeaveCallback(args);
+            args.preventDefault();
+        };
+
         const wheelHandler = (args: WheelEvent) => {
             wheelCallback(args);
             args.preventDefault();
@@ -193,12 +199,14 @@ export class InputHelper {
         element.addEventListener("pointerup", pointerUpHandler);
         element.addEventListener("wheel", wheelHandler);
         element.addEventListener("pointercancel", pointerCancelHandler);
+        element.addEventListener("mouseleave", mouseLeaveHandler);
 
         return () => {
             element.removeEventListener("pointerover", pointerMoveHandler);
             element.removeEventListener("pointerdown", pointerDownHandler);
             element.removeEventListener("pointerup", pointerUpHandler);
             element.removeEventListener("pointercancel", pointerCancelHandler);
+            element.removeEventListener("mouseleave", mouseLeaveHandler);
             element.removeEventListener("wheel", wheelHandler);
         };
     }

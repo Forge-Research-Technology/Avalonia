@@ -37,7 +37,7 @@ internal class BrowserInputHandler
             OnKeyDown,
             OnKeyUp);
         InputHelper.SubscribePointerEvents(container, OnPointerMove, OnPointerDown, OnPointerUp,
-            OnPointerCancel, OnWheel);
+            OnPointerCancel, OnPointerExited, OnWheel);
         InputHelper.SubscribeDropEvents(container, OnDragEvent);
     }
 
@@ -147,6 +147,14 @@ internal class BrowserInputHandler
         }
 
         return false;
+    }
+
+    private bool OnPointerExited(JSObject args)
+    {
+        var pointerType = args.GetPropertyAsString("pointerType") ?? "mouse";
+        var type = RawPointerEventType.LeaveWindow;
+
+        return RawPointerEvent(type, pointerType, new RawPointerPoint(), GetModifiers(args), args.GetPropertyAsInt32("pointerId"));
     }
 
     private bool OnWheel(JSObject args)
