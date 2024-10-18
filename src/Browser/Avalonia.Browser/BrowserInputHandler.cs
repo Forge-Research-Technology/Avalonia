@@ -154,7 +154,7 @@ internal class BrowserInputHandler
         var pointerType = args.GetPropertyAsString("pointerType") ?? "mouse";
         var type = RawPointerEventType.LeaveWindow;
 
-        return RawPointerEvent(type, pointerType, new RawPointerPoint(), GetModifiers(args), args.GetPropertyAsInt32("pointerId"));
+        return RawPointerEvent(type, pointerType, new RawPointerPoint() { Position = new Point(-1, -1)}, GetModifiers(args), args.GetPropertyAsInt32("pointerId"));
     }
 
     private bool OnWheel(JSObject args)
