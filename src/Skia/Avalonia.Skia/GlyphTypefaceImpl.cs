@@ -80,6 +80,8 @@ namespace Avalonia.Skia
 
         public FontStretch Stretch { get; }
 
+        public SKTypeface UnsafeSKTypeface => _typeface;
+
         public bool TryGetGlyphMetrics(ushort glyph, out GlyphMetrics metrics)
         {
             metrics = default;
