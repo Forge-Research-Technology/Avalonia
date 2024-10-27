@@ -55,7 +55,6 @@ namespace Avalonia.Win32
         {
             _synchronizationContext = SynchronizationContext.Current;
 
-            _enforcePerMonitorAwareness = SetDpiAwareness();
             CreateMessageWindow();
             _dispatcher = new Win32DispatcherImpl(_hwnd);
         }
@@ -106,8 +105,8 @@ namespace Avalonia.Win32
                 s_instance.Destroy();
                 OffscreenParentWindow.Destroy();
             });
-            
-            SetDpiAwareness();
+
+            s_instance._enforcePerMonitorAwareness = SetDpiAwareness();
 
             var renderTimer = options.ShouldRenderOnUIThread ? new UiThreadRenderTimer(60) : new DefaultRenderTimer(60);
 
