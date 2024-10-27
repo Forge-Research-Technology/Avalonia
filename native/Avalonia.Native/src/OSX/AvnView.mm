@@ -928,7 +928,16 @@
         return;
     }
 
-    _parent->BaseEvents->Deactivated();
+    NSWindow *currentKeyWindow = [NSApp keyWindow];
+    if (!currentKeyWindow) {
+        // Similar to `applicationDidResignActive` or `NSApplicationDidResignActiveNotification`
+
+        // We only want to trigger the deactivated event when the whole app lost focus,
+        // not just the overlay window. This is in order to ensure that opening child
+        // windows continue to work properly (eg. NSColorPanel external window picker).
+
+        _parent->BaseEvents->Deactivated();
+    }
 }
 
 - (void)colorPanelWillClose:(NSNotification *)notification {
