@@ -95,15 +95,15 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 return event;
     }];
 
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
+    
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
         NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
 
-        // When any modifier key is pressed or released, the if block shall execute
-        // When the modifier key is released, the flags change to 0x0.
-        if ((GetCommandModifier([event modifierFlags]) != AvnInputModifiersNone) || (flags == 0x0 && [event type] == NSEventTypeFlagsChanged))
+        // When any modifier key is pressed or released, the if block shall execute hence it responds to NSEventTypeFlagsChanged
+        if ([event type] == NSEventTypeFlagsChanged)
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
@@ -138,11 +138,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
             
             uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-            AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); // Windows is equivalent to CMD
+            AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); 
             AvnRawKeyEventType type;
 
-            // All the key events which does not marked as key down, will be treated as key up
-            if ([event type] == NSEventTypeKeyDown)
+            // Type flag change with the set modifier is a key down. 
+            // Same with the unset modifier is a key up. [When the modifier key is released, the flag changes to 0x0]
+            if (modifiers != AvnInputModifiersNone)
             {
                 type = KeyDown;
             }
