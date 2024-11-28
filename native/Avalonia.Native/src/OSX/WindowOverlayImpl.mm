@@ -95,16 +95,16 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 return event;
     }];
 
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp handler:^NSEvent * (NSEvent * event) {
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        // Debug key events
-        // NSLog(@"DISPATCHING window=%@ overlay=%d cmd=%d key=%@, type=%d",
-        //    [event window], [event window] == this->parentWindow, flags == NSCommandKeyMask, [event characters], [event type]);
-
-        if (flags == NSCommandKeyMask)
+        
+        NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
+        if (flags == NSEventModifierFlagCommand || (flags == 0x0 && [event type] == NSEventTypeFlagsChanged))
         {
+            // When the modifer key is released, the flags change to 0x0.
+            NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
             {
                 // We treat Cmd+v (keycode 9) in a special way. This is similar to what Avalonia does in the
@@ -137,10 +137,13 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
             
             uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-            AvnInputModifiers modifiers = Windows; // Windows is equivalent to CMD
+            AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); // Windows is equivalent to CMD
             AvnRawKeyEventType type;
-            
-            if ([event type] == NSEventTypeKeyDown)
+
+            // In addition to the regular key down event, when the modifier key is released, we need to detect the event by looking at 
+            // the NSEventTypeFlagsChanged event and check whether the key is the command key.
+
+            if ([event type] == NSEventTypeKeyDown || ([event type] == NSEventTypeFlagsChanged && flags == NSEventModifierFlagCommand))
             {
                 type = KeyDown;
             }
@@ -163,10 +166,32 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     }];
 }
 
+
+AvnInputModifiers WindowOverlayImpl::GetCommandModifier(NSEventModifierFlags modFlag)
+{
+    unsigned int rv = 0;
+
+    if (modFlag & NSEventModifierFlagControl)
+        rv |= Control;
+    if (modFlag & NSEventModifierFlagShift)
+        rv |= Shift;
+    if (modFlag & NSEventModifierFlagOption)
+        rv |= Alt;
+    if (modFlag & NSEventModifierFlagCommand)
+        rv |= Windows;
+
+    if (rv == 0)
+        return AvnInputModifiersNone;
+    else
+        return (AvnInputModifiers)rv;
+}
+
+
 bool WindowOverlayImpl::IsOverlay()
 {
     return true;
 }
+
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
     START_COM_CALL;

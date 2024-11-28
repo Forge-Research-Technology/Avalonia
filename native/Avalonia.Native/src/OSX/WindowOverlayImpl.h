@@ -17,6 +17,7 @@ private:
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
     END_INTERFACE_MAP()
     void InitializeColorPicker();
+    AvnInputModifiers GetCommandModifier(NSEventModifierFlags modFlag);
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual bool IsOverlay() override;
