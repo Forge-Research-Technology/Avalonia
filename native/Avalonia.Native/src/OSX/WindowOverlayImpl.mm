@@ -99,11 +99,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        
         NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
-        if (flags == NSEventModifierFlagCommand || (flags == 0x0 && [event type] == NSEventTypeFlagsChanged))
+
+        // When any modifier key is pressed or released, the if block shall execute
+        // When the modifier key is released, the flags change to 0x0.
+        if ((GetCommandModifier([event modifierFlags]) != AvnInputModifiersNone) || (flags == 0x0 && [event type] == NSEventTypeFlagsChanged))
         {
-            // When the modifer key is released, the flags change to 0x0.
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
             {
@@ -140,10 +141,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); // Windows is equivalent to CMD
             AvnRawKeyEventType type;
 
-            // In addition to the regular key down event, when the modifier key is released, we need to detect the event by looking at 
-            // the NSEventTypeFlagsChanged event and check whether the key is the command key.
-
-            if ([event type] == NSEventTypeKeyDown || ([event type] == NSEventTypeFlagsChanged && flags == NSEventModifierFlagCommand))
+            // All the key events which does not marked as key down, will be treated as key up
+            if ([event type] == NSEventTypeKeyDown)
             {
                 type = KeyDown;
             }
