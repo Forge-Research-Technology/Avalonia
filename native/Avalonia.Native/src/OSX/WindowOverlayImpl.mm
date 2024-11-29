@@ -1,6 +1,7 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
+
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
@@ -96,14 +97,17 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     }];
 
     
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
+        AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); 
         NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
 
-        // When any modifier key is pressed or released, the if block shall execute hence it responds to NSEventTypeFlagsChanged
-        if ([event type] == NSEventTypeFlagsChanged)
+        // When any modifier key alone is pressed or released, the if block shall execute hence it responds to NSEventTypeFlagsChanged
+        // This shall listens to Modifier+Key events, hence modifiers != AvnInputModifiersNone is checked
+        // This conditions is placed to avoid independent key strokes from reaching the Key event handler
+        if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
@@ -138,18 +142,29 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
             
             uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-            AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); 
             AvnRawKeyEventType type;
 
             // Type flag change with the set modifier is a key down. 
             // Same with the unset modifier is a key up. [When the modifier key is released, the flag changes to 0x0]
-            if (modifiers != AvnInputModifiersNone)
+            // This is handled in the else block
+            if ([event type] == NSEventTypeKeyDown)
             {
                 type = KeyDown;
             }
-            else
+            else if ([event type] == NSEventTypeKeyUp)
             {
                 type = KeyUp;
+            }
+            else 
+            {
+                if (modifiers != AvnInputModifiersNone)
+                {
+                    type = KeyDown;
+                }
+                else 
+                {
+                    type = KeyUp;
+                }
             }
 
             handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
