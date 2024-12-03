@@ -1,6 +1,7 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
+
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
@@ -95,16 +96,20 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 return event;
     }];
 
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp handler:^NSEvent * (NSEvent * event) {
+    
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        // Debug key events
-        // NSLog(@"DISPATCHING window=%@ overlay=%d cmd=%d key=%@, type=%d",
-        //    [event window], [event window] == this->parentWindow, flags == NSCommandKeyMask, [event characters], [event type]);
+        AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); 
+        NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
 
-        if (flags == NSCommandKeyMask)
+        // When any modifier key alone is pressed or released, the if block shall execute hence it responds to NSEventTypeFlagsChanged
+        // This shall listens to Modifier+Key events, hence modifiers != AvnInputModifiersNone is checked
+        // This conditions is placed to avoid independent key strokes from reaching the Key event handler
+        if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
+            NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
             {
                 // We treat Cmd+v (keycode 9) in a special way. This is similar to what Avalonia does in the
@@ -137,16 +142,29 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
             
             uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-            AvnInputModifiers modifiers = Windows; // Windows is equivalent to CMD
             AvnRawKeyEventType type;
-            
+
+            // Type flag change with the set modifier is a key down. 
+            // Same with the unset modifier is a key up. [When the modifier key is released, the flag changes to 0x0]
+            // This is handled in the else block
             if ([event type] == NSEventTypeKeyDown)
             {
                 type = KeyDown;
             }
-            else
+            else if ([event type] == NSEventTypeKeyUp)
             {
                 type = KeyUp;
+            }
+            else 
+            {
+                if (modifiers != AvnInputModifiersNone)
+                {
+                    type = KeyDown;
+                }
+                else 
+                {
+                    type = KeyUp;
+                }
             }
 
             handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
@@ -163,10 +181,32 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     }];
 }
 
+
+AvnInputModifiers WindowOverlayImpl::GetCommandModifier(NSEventModifierFlags modFlag)
+{
+    unsigned int rv = 0;
+
+    if (modFlag & NSEventModifierFlagControl)
+        rv |= Control;
+    if (modFlag & NSEventModifierFlagShift)
+        rv |= Shift;
+    if (modFlag & NSEventModifierFlagOption)
+        rv |= Alt;
+    if (modFlag & NSEventModifierFlagCommand)
+        rv |= Windows;
+
+    if (rv == 0)
+        return AvnInputModifiersNone;
+    else
+        return (AvnInputModifiers)rv;
+}
+
+
 bool WindowOverlayImpl::IsOverlay()
 {
     return true;
 }
+
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
     START_COM_CALL;
