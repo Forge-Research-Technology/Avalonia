@@ -701,6 +701,15 @@ HRESULT WindowBaseImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
     }
 }
 
+HRESULT WindowBaseImpl::HideWindow(void* nsWindow) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
 {
     @autoreleasepool

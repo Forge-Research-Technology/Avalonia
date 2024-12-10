@@ -21,5 +21,7 @@ namespace Avalonia.Platform
         public Bitmap TakeScreenshot();
 
         public Color? PickColor(Color? initialColor);
+        
+        public void HideWindow(IntPtr nsWindow);
     }
 }
