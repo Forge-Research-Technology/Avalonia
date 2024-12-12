@@ -115,6 +115,7 @@ BEGIN_INTERFACE_MAP()
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
     virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
+    virtual HRESULT HideWindow(void* nsWindow) override;
 
 protected:
     NSSize lastSize;

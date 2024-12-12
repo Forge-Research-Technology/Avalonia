@@ -230,6 +230,7 @@ HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
 
 HRESULT WindowOverlayImpl::GetScaling(double *ret) {
     START_COM_CALL;
+
     @autoreleasepool {
         if (ret == nullptr)
             return E_POINTER;
@@ -288,11 +289,11 @@ HRESULT WindowOverlayImpl::PointToScreen(AvnPoint point, AvnPoint *ret) {
 }
 
 HRESULT WindowOverlayImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
+    START_COM_CALL;
+
     // We need this whenever scrollbars are present inside PPTClipView.
     // This is a fix for PowerPoint's builtin PointsToScreenPixelsX returning
     // the same value regardless of scroll position on Macos.
-
-    START_COM_CALL;
 
     @autoreleasepool {
         if (ret == nullptr) {
@@ -313,6 +314,8 @@ HRESULT WindowOverlayImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
 }
 
 HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
+    START_COM_CALL;
+
     NSView* view = [[this->parentWindow contentView] superview];
     
     if (view == nullptr) {
@@ -377,6 +380,8 @@ void WindowOverlayImpl::InitializeColorPicker() {
 }
 
 HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
+    START_COM_CALL;
+
     NSColor* initialColor = this->colorPanel.color;
     
     this->colorPanel.color = [NSColor colorWithRed:color.Red / 255.0
@@ -402,4 +407,15 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     }
 
     return S_OK;
+}
+
+HRESULT WindowOverlayImpl::HideWindow(void* nsWindow) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        auto window = (__bridge NSWindow*) nsWindow;
+
+        [window orderOut:nil];
+        return S_OK;
+    }
 }
