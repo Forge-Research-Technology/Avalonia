@@ -207,6 +207,26 @@ bool WindowOverlayImpl::IsOverlay()
     return true;
 }
 
+HRESULT WindowOverlayImpl::Activate() {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        NSWindow *window = View.window;
+
+        if (window == nullptr) {
+            NSLog(@"ACT: Overlay window not found");
+        }
+        else {
+            if ([window makeFirstResponder:View]) {
+                NSLog(@"ACT: Successfully made the view the first responder.");
+            } else {
+                NSLog(@"ACT: Failed to make the view the first responder.");
+            }
+        }        
+    }
+
+    return S_OK;
+}
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
     START_COM_CALL;
