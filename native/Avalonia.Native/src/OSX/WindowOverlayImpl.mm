@@ -428,14 +428,3 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
     return S_OK;
 }
-
-HRESULT WindowOverlayImpl::HideWindow(void* nsWindow) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        auto window = (__bridge NSWindow*) nsWindow;
-
-        [window orderOut:nil];
-        return S_OK;
-    }
-}

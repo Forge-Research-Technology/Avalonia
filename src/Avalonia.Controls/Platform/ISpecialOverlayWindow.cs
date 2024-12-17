@@ -22,6 +22,5 @@ namespace Avalonia.Platform
 
         public Color? PickColor(Color? initialColor);
         
-        public void HideWindow(IntPtr nsWindow);
     }
 }

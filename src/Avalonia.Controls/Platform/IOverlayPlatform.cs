@@ -8,6 +8,7 @@ namespace Avalonia.Platform
     {
         IWindowImpl CreateOverlay(IntPtr parentWindow, string parentView);
         bool AppActivate(string name);
+        void HideWindow(IntPtr nsWindow);
     }
 
 }

@@ -198,5 +198,10 @@ namespace Avalonia.Native
             var result = _factory.AppActivate(bundleIdentifier).FromComBool();
             return result;
         }
+
+        public void HideWindow(IntPtr nsWindow)
+        {
+            _factory.HideWindow(nsWindow);
+        }
     }
 }
