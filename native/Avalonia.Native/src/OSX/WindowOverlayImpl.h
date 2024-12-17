@@ -29,7 +29,7 @@ public:
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
     virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
     virtual HRESULT HideWindow(void* nsWindow) override;
-
+    virtual HRESULT Activate() override;
 };
 
 #endif
