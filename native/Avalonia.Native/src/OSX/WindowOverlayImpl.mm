@@ -211,7 +211,7 @@ HRESULT WindowOverlayImpl::Activate() {
     START_COM_CALL;
 
     @autoreleasepool {
-        NSWindow *window = View.window;
+        NSWindow *window = this->parentWindow;
 
         if (window == nullptr) {
             NSLog(@"ACT: Overlay window not found");
