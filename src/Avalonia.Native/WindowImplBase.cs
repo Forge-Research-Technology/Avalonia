@@ -680,10 +680,5 @@ namespace Avalonia.Native
 
             return new Color(_outputColor.Alpha, _outputColor.Red, _outputColor.Green, _outputColor.Blue);
         }
-
-        public void HideWindow(IntPtr nsWindow)
-        {
-            _native?.HideWindow(nsWindow);
-        }
     }
 }

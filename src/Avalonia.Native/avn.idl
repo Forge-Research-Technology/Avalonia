@@ -684,6 +684,7 @@ interface IAvaloniaNativeFactory : IUnknown
      HRESULT CreatePlatformSettings(IAvnPlatformSettings** ppv);
      HRESULT CreatePlatformBehaviorInhibition(IAvnPlatformBehaviorInhibition** ppv);
      bool AppActivate(char* bundleIdentifier);
+     HRESULT HideWindow([intptr]void* nsWindow);
 }
 
 [uuid(233e094f-9b9f-44a3-9a6e-6948bbdd9fb1)]
@@ -731,7 +732,6 @@ interface IAvnWindowBase : IUnknown
      HRESULT GetPPTClipViewOrigin(AvnPoint*ret);
      HRESULT TakeScreenshot(void** ret, int* retLength);
      HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret);
-     HRESULT HideWindow([intptr]void* nsWindow);
 }
 
 [uuid(83e588f3-6981-4e48-9ea0-e1e569f79a91), cpp-virtual-inherits]

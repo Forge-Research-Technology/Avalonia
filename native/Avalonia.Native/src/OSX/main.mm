@@ -278,6 +278,18 @@ public:
         }
     }
 
+    virtual HRESULT HideWindow(void* nsWindow) override
+    {
+        START_COM_CALL;
+
+        @autoreleasepool {
+            auto window = (__bridge NSWindow*) nsWindow;
+
+            [window orderOut:nil];
+            return S_OK;
+        }
+    }
+
     virtual HRESULT CreatePopup(IAvnWindowEvents* cb, IAvnPopup** ppv) override
     {
         START_COM_CALL;
