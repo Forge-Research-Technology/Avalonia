@@ -1,5 +1,6 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
+#include <Foundation/Foundation.h>
 
 
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
@@ -110,9 +111,10 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if ([event keyCode] == 9 && [[event window] isKindOfClass:[AvnWindow class]])
+            if (([event keyCode] == 9 || [event keyCode] == 0) && [[event window] isKindOfClass:[AvnWindow class]])
             {
-                // We treat Cmd+v (keycode 9) in a special way. This is similar to what Avalonia does in the
+                // We treat Cmd+v (keycode 9) and Cmd+a (keycode 0) in a special way. This is similar to 
+                // what Avalonia does in the
                 // app.mm sendEvent handler but never executed in our case, because PowerPoint already has
                 // instantiated an NSApplication. Thus we need to do a similar thing from some other place.
 
@@ -131,7 +133,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 // In order to maintain Powerpoint's default behaviour, we will only manually execute some of
                 // those keyboard events that were intended for our Avalonia windows (eg. Data Editor window).
                 
-                NSLog(@"MONITOR Forcing keyboard event to AvnWindow");
+                NSLog(@"WOI: MONITOR Forcing keyboard event to AvnWindow");
                 [[event window] sendEvent:event];
                 return nil;
             }
@@ -170,13 +172,13 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
         }
 
-        NSLog(@"Monitor handled = %d", handled);
-
         if (handled)
         {
+            NSLog(@"WOI: Monitor handled key=%hu", [event keyCode]);
             return nil;
         }
 
+        NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
         return event;
     }];
 }
@@ -218,7 +220,8 @@ HRESULT WindowOverlayImpl::Activate() {
         }
         else {
             if ([window makeFirstResponder:View]) {
-                NSLog(@"ACT: Successfully made the view the first responder.");
+                NSString* firstResponderName = NSStringFromClass([View class]);
+                NSLog(@"ACT: Successfully made the view the first responder: %@", firstResponderName);
             } else {
                 NSLog(@"ACT: Failed to make the view the first responder.");
             }
