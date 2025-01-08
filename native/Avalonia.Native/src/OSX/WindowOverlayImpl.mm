@@ -1,5 +1,6 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
+#include <AppKit/AppKit.h>
 #include <Foundation/Foundation.h>
 
 
@@ -111,12 +112,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if (([event keyCode] == 9 || [event keyCode] == 0) && [[event window] isKindOfClass:[AvnWindow class]])
+            if (([event keyCode] == 9 || [event keyCode] == 0) && ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
                 // We treat Cmd+v (keycode 9) and Cmd+a (keycode 0) in a special way. This is similar to 
-                // what Avalonia does in the
-                // app.mm sendEvent handler but never executed in our case, because PowerPoint already has
-                // instantiated an NSApplication. Thus we need to do a similar thing from some other place.
+                // what Avalonia does in the app.mm sendEvent handler but never executed in our case, 
+                // because PowerPoint already has instantiated an NSApplication. 
+                // Thus we need to do a similar thing from some other place.
 
                 // PowerPoint catches some of the key events before getting to their normal window handler.
                 // Some of those Cmd+key events include: q, w, o, p, a, s, f, h, v, m
@@ -177,9 +178,10 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             NSLog(@"WOI: Monitor handled key=%hu", [event keyCode]);
             return nil;
         }
-
-        NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
-        return event;
+        else {
+            NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
+            return event;
+        }
     }];
 }
 
