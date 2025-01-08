@@ -1,8 +1,5 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
-#include <AppKit/AppKit.h>
-#include <Foundation/Foundation.h>
-
 
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
@@ -112,14 +109,15 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if (([event keyCode] == 9 || [event keyCode] == 0) && ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
+            if (([event keyCode] == 9 || [event keyCode] == 0) &&
+                ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
                 // Current special keys are: Cmd+v (keycode 9) and Cmd+a (keycode 0)
 
                 // We need to treat these combinations in a special way in our local event monitor,
-                // in order to make sure they reach our handler. This is done because PowerPoint has
-                // its own local event monitor which stops certain events from reaching our AvnView
-                // in the normal chain of window events.
+                // in order to ensure they reach their intended handler. This is required because
+                // PowerPoint has its own local event monitor which stops certain events from
+                // reaching our AvnView in the normal chain of window events.
 
                 // If the event matches specific key codes and it was intended for our AvnView, then
                 // we can directly pass it to its intended window, skipping any other event monitors.
