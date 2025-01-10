@@ -122,7 +122,13 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 // If the event matches specific key codes and it was intended for our AvnView, then
                 // we can directly pass it to its intended window, skipping any other event monitors.
                 // This window can be either the Powerpoint window or a completely external avalonia
-                // window, like our data editor window is.
+                // window, like our data editor window is. Possible scenarios are:
+
+                // 1) The Powerpoint window: firstResponder is our overlay (an AvnView) whenever a
+                // grunt object was recently selected by the user.
+                // 2) An external Avalonia window: firstResponder is always an AvnView.
+
+                // First responder might be null with window minimized for example, that's also okay.
 
                 // The powerpoint local event monitor can be observed when hitting Cmd+v while in the
                 // `About PowerPoint` window, causing clipboard contents to be inserted in the slide,
