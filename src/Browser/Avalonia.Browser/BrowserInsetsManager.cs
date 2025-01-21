@@ -15,11 +15,11 @@ namespace Avalonia.Browser
         {
             get
             {
-                return DomHelper.IsFullscreen();
+                return DomHelper.IsFullscreen(BrowserWindowingPlatform.GlobalThis);
             }
             set
             {
-                DomHelper.SetFullscreen(!value ?? false);
+                _ = DomHelper.SetFullscreen(BrowserWindowingPlatform.GlobalThis, !value ?? false);
             }
         }
 
@@ -29,7 +29,7 @@ namespace Avalonia.Browser
         {
             get
             {
-                var padding = DomHelper.GetSafeAreaPadding();
+                var padding = DomHelper.GetSafeAreaPadding(BrowserWindowingPlatform.GlobalThis);
 
                 return new Thickness(padding[0], padding[1], padding[2], padding[3]);
             }

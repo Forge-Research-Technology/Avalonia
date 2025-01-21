@@ -23,7 +23,7 @@
       </NativeMenuItem>
     </NativeMenu>
   </NativeMenu.Menu>
-  <DockPanel>
+  <DockPanel Background="{DynamicResource SystemRegionBrush}">
     <NativeMenuBar DockPanel.Dock="Top"/>
     <StackPanel DockPanel.Dock="Bottom" Margin="4" Orientation="Horizontal">
       <TextBlock Margin="0,0,4,0">WindowState:</TextBlock>

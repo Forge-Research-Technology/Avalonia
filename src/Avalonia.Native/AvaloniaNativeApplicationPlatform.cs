@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Platform;
 using Avalonia.Native.Interop;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
@@ -19,13 +20,15 @@ namespace Avalonia.Native
         {
             ((IApplicationPlatformEvents)Application.Current)?.RaiseUrlsOpened(urls.ToStringArray());
 
-            if (AvaloniaLocator.Current.GetService<IActivatableLifetime>() is ActivatableLifetimeBase lifetime)
+            if (AvaloniaLocator.Current.GetService<IActivatableLifetime>() is ActivatableLifetimeBase lifetime
+                && AvaloniaLocator.Current.GetService<IStorageProviderFactory>() is StorageProviderApi storageApi)
             {
                 var filePaths = urls.ToStringArray();
                 var files = new List<IStorageItem>(filePaths.Length);
                 foreach (var filePath in filePaths)
                 {
-                    if (StorageProviderHelpers.TryCreateBclStorageItem(filePath) is { } file)
+                    if (StorageProviderHelpers.TryGetUriFromFilePath(filePath, false) is { } fileUri
+                        && storageApi.TryGetStorageItem(fileUri) is { } file)
                     {
                         files.Add(file);
                     }
@@ -43,7 +46,8 @@ namespace Avalonia.Native
             // Raise the urls opened event to be compatible with legacy behavior.
             ((IApplicationPlatformEvents)Application.Current)?.RaiseUrlsOpened(urls.ToStringArray());
 
-            if (AvaloniaLocator.Current.GetService<IActivatableLifetime>() is ActivatableLifetimeBase lifetime)
+            if (AvaloniaLocator.Current.GetService<IActivatableLifetime>() is ActivatableLifetimeBase lifetime
+                && AvaloniaLocator.Current.GetService<IStorageProviderFactory>() is StorageProviderApi storageApi)
             {
                 var files = new List<IStorageItem>();
                 var uris = new List<Uri>();
@@ -53,7 +57,7 @@ namespace Avalonia.Native
                     {
                         if (uri.Scheme == Uri.UriSchemeFile)
                         {
-                            if (StorageProviderHelpers.TryCreateBclStorageItem(uri.LocalPath) is { } file)
+                            if (storageApi.TryGetStorageItem(uri) is { } file)
                             {
                                 files.Add(file);
                             }
@@ -88,7 +92,7 @@ namespace Avalonia.Native
         {
             if (AvaloniaLocator.Current.GetService<IActivatableLifetime>() is ActivatableLifetimeBase lifetime)
             {
-                lifetime.OnActivated(ActivationKind.Background);    
+                lifetime.OnDeactivated(ActivationKind.Background);    
             }
         }
 

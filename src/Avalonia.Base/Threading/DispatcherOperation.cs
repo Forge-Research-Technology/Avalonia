@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Avalonia.Threading;
 
+[DebuggerDisplay("{DebugDisplay}")]
 public class DispatcherOperation
 {
     protected readonly bool ThrowOnUiThread;
@@ -25,7 +27,7 @@ public class DispatcherOperation
         }
     }
 
-    protected object? Callback;
+    protected internal object? Callback;
     protected object? TaskSource;
     
     internal DispatcherOperation? SequentialPrev { get; set; }
@@ -51,6 +53,16 @@ public class DispatcherOperation
         ThrowOnUiThread = throwOnUiThread;
         Priority = priority;
         Dispatcher = dispatcher;
+    }
+
+    internal string DebugDisplay
+    {
+        get
+        {
+            var method = (Callback as Delegate)?.Method;
+            var methodDisplay = method is null ? "???" : method.DeclaringType + "." + method.Name;
+            return $"{methodDisplay} [{Priority}]";
+        }
     }
 
     /// <summary>
@@ -118,7 +130,7 @@ public class DispatcherOperation
     /// </summary>
     /// <returns>
     ///     The status of the operation.  To obtain the return value
-    ///     of the invoked delegate, use the the Result property.
+    ///     of the invoked delegate, use the Result property.
     /// </returns>
     public void Wait() => Wait(TimeSpan.FromMilliseconds(-1));
 

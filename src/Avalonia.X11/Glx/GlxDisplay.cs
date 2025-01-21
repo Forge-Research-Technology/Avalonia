@@ -18,6 +18,8 @@ namespace Avalonia.X11.Glx
         public XVisualInfo* VisualInfo => _visual;
         public GlxContext DeferredContext { get; }
         public GlxInterface Glx { get; } = new GlxInterface();
+        public X11Info X11Info => _x11;
+        public IntPtr FbConfig => _fbconfig;
         public GlxDisplay(X11Info x11, IList<GlVersion> probeProfiles) 
         {
             _x11 = x11;
@@ -166,16 +168,19 @@ namespace Avalonia.X11.Glx
                 rv = Create(_version.Value);
             }
             
-            foreach (var v in _probeProfiles)
+            if (rv == null)
             {
-                if (v.Type == GlProfileType.OpenGLES
-                    && !_displayExtensions.Contains("GLX_EXT_create_context_es2_profile"))
-                    continue;
-                rv = Create(v);
-                if (rv != null)
+                foreach (var v in _probeProfiles)
                 {
-                    _version = v;
-                    break;
+                    if (v.Type == GlProfileType.OpenGLES
+                        && !_displayExtensions.Contains("GLX_EXT_create_context_es2_profile"))
+                        continue;
+                    rv = Create(v);
+                    if (rv != null)
+                    {
+                        _version = v;
+                        break;
+                    }
                 }
             }
 

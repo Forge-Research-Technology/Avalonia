@@ -136,7 +136,17 @@ namespace Avalonia.Automation.Peers
 
             return result;
         }
+        protected override string? GetHelpTextCore()
+        {          
+            var result = AutomationProperties.GetHelpText(Owner);
 
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                result = ToolTip.GetTip(Owner) as string;
+            }
+
+            return result;          
+        }
         protected override AutomationPeer? GetParentCore()
         {
             EnsureConnected();

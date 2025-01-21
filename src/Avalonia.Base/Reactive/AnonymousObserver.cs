@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using static Avalonia.Reactive.AnonymousObserverNonGenericHelper;
 
 namespace Avalonia.Reactive;
 

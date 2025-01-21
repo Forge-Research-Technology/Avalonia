@@ -11,11 +11,12 @@
 extern IAvnPlatformThreadingInterface* CreatePlatformThreading();
 extern void FreeAvnGCHandle(void* handle);
 extern void PostDispatcherCallback(IAvnActionCallback* cb);
+extern IAvnTopLevel* CreateAvnTopLevel(IAvnTopLevelEvents* events);
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events);
 extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events);
 extern IAvnPopup* CreateAvnPopup(IAvnWindowEvents*events);
-extern IAvnSystemDialogs* CreateSystemDialogs();
-extern IAvnScreens* CreateScreens();
+extern IAvnStorageProvider* CreateStorageProvider();
+extern IAvnScreens* CreateScreens(IAvnScreenEvents* cb);
 extern IAvnClipboard* CreateClipboard(NSPasteboard*, NSPasteboardItem*);
 extern NSPasteboardItem* TryGetPasteboardItem(IAvnClipboard*);
 extern NSObject<NSDraggingSource>* CreateDraggingSource(NSDragOperation op, IAvnDndResultCallback* cb, void* handle);
@@ -48,6 +49,7 @@ extern AvnPoint ToAvnPoint (NSPoint p);
 extern AvnPoint ConvertPointY (AvnPoint p);
 extern NSSize ToNSSize (AvnSize s);
 extern NSView* FindNSView(NSWindow* window, NSString* viewName);
+extern AvnSize FromNSSize (NSSize s);
 
 #ifdef DEBUG
 #define NSDebugLog(...) NSLog(__VA_ARGS__)
@@ -88,6 +90,13 @@ public:
 @interface ActionCallback : NSObject
 - (ActionCallback*) initWithCallback: (IAvnActionCallback*) callback;
 - (void) action;
+@end
+
+@implementation NSScreen (AvNSScreen)
+- (CGDirectDisplayID)av_displayId
+{
+    return [self.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+}
 @end
 
 class AvnInsidePotentialDeadlock

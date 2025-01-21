@@ -112,6 +112,11 @@ namespace Avalonia.Automation.Peers
         /// Gets text that describes the element that is associated with this automation peer.
         /// </summary>
         public string GetName() => GetNameCore() ?? string.Empty;
+        
+        /// <summary>
+        /// Gets text that provides help for the element that is associated with this automation peer.
+        /// </summary>
+        public string GetHelpText() => GetHelpTextCore() ?? string.Empty;
 
         /// <summary>
         /// Gets the <see cref="AutomationPeer"/> that is the parent of this <see cref="AutomationPeer"/>.
@@ -193,7 +198,7 @@ namespace Avalonia.Automation.Peers
         public event EventHandler<AutomationPropertyChangedEventArgs>? PropertyChanged;
 
         /// <summary>
-        /// Raises an event to notify the automation client the the children of the peer have changed.
+        /// Raises an event to notify the automation client the children of the peer have changed.
         /// </summary>
         protected void RaiseChildrenChangedEvent() => ChildrenChanged?.Invoke(this, EventArgs.Empty);
 
@@ -250,6 +255,7 @@ namespace Avalonia.Automation.Peers
         protected abstract string GetClassNameCore();
         protected abstract AutomationPeer? GetLabeledByCore();
         protected abstract string? GetNameCore();
+        protected virtual string? GetHelpTextCore() => null;
         protected abstract AutomationPeer? GetParentCore();
         protected abstract bool HasKeyboardFocusCore();
         protected abstract bool IsContentElementCore();

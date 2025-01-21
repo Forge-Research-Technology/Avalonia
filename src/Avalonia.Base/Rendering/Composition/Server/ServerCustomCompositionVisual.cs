@@ -39,7 +39,7 @@ internal sealed class ServerCompositionCustomVisual : ServerCompositionContainer
         _wantsNextAnimationFrameAfterTick = false;
         _handler.OnAnimationFrameUpdate();
         if (!_wantsNextAnimationFrameAfterTick)
-            Compositor.RemoveFromClock(this);
+            Compositor.Animations.RemoveFromClock(this);
     }
 
     public override LtrbRect OwnContentBounds => new(_handler.GetRenderBounds());
@@ -47,13 +47,13 @@ internal sealed class ServerCompositionCustomVisual : ServerCompositionContainer
     protected override void OnAttachedToRoot(ServerCompositionTarget target)
     {
         if (_wantsNextAnimationFrameAfterTick)
-            Compositor.AddToClock(this);
+            Compositor.Animations.AddToClock(this);
         base.OnAttachedToRoot(target);
     }
 
     protected override void OnDetachedFromRoot(ServerCompositionTarget target)
     {
-        Compositor.RemoveFromClock(this);
+        Compositor.Animations.RemoveFromClock(this);
         base.OnDetachedFromRoot(target);
     }
 
@@ -68,7 +68,7 @@ internal sealed class ServerCompositionCustomVisual : ServerCompositionContainer
     {
         _wantsNextAnimationFrameAfterTick = true;
         if (Root != null)
-            Compositor.AddToClock(this);
+            Compositor.Animations.AddToClock(this);
     }
 
     protected override void RenderCore(ServerVisualRenderContext ctx, LtrbRect currentTransformedClip)

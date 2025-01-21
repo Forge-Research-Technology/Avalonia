@@ -204,7 +204,7 @@ public abstract class UntypedBindingExpressionBase : BindingExpressionBase,
     internal void AttachAndStart(
         IBindingExpressionSink subscriber,
         AvaloniaObject target,
-        AvaloniaProperty targetProperty,
+        AvaloniaProperty? targetProperty,
         BindingPriority priority)
     {
         AttachCore(subscriber, null, target, targetProperty, priority);
@@ -261,7 +261,7 @@ public abstract class UntypedBindingExpressionBase : BindingExpressionBase,
         IBindingExpressionSink sink,
         ImmediateValueFrame? frame,
         AvaloniaObject target,
-        AvaloniaProperty targetProperty,
+        AvaloniaProperty? targetProperty,
         BindingPriority priority)
     {
         if (_sink is not null)
@@ -273,7 +273,7 @@ public abstract class UntypedBindingExpressionBase : BindingExpressionBase,
         _frame = frame;
         _target = new(target);
         TargetProperty = targetProperty;
-        TargetType = targetProperty.PropertyType;
+        TargetType = targetProperty?.PropertyType ?? typeof(object);
         Priority = priority;
     }
 
@@ -409,6 +409,9 @@ public abstract class UntypedBindingExpressionBase : BindingExpressionBase,
     /// <param name="error">The new binding or data validation error.</param>
     private protected void PublishValue(object? value, BindingError? error = null)
     {
+        Debug.Assert(value is not BindingNotification);
+        Debug.Assert(value != BindingOperations.DoNothing);
+
         if (!IsRunning)
             return;
 
@@ -538,9 +541,9 @@ public abstract class UntypedBindingExpressionBase : BindingExpressionBase,
         if (TargetProperty is not null && _target?.TryGetTarget(out var target) == true)
         {
             if (TargetProperty.IsDirect)
-                _defaultValue = ((IDirectPropertyAccessor)TargetProperty).GetUnsetValue(target.GetType());
+                _defaultValue = ((IDirectPropertyAccessor)TargetProperty).GetUnsetValue(target);
             else
-                _defaultValue = ((IStyledPropertyAccessor)TargetProperty).GetDefaultValue(target.GetType());
+                _defaultValue = ((IStyledPropertyAccessor)TargetProperty).GetDefaultValue(target);
 
             _isDefaultValueInitialized = true;
             return _defaultValue;

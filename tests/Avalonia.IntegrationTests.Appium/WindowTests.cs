@@ -251,6 +251,35 @@ namespace Avalonia.IntegrationTests.Appium
             Assert.Equal(new Rgba32(255, 0, 0), centerColor);
         }
 
+        [PlatformFact(TestPlatforms.Windows)]
+        public void Owned_Window_Should_Appear_Above_Topmost_Owner()
+        {
+            var showTopmostWindow = Session.FindElementByAccessibilityId("ShowTopmostWindow");
+            using var window = showTopmostWindow.OpenWindowWithClick();
+            Thread.Sleep(1000);
+            var ownerWindow = Session.GetWindowById("OwnerWindow");
+            var ownedWindow = Session.GetWindowById("OwnedWindow");
+
+            Assert.NotNull(ownerWindow);
+            Assert.NotNull(ownedWindow);
+
+            var ownerPosition = GetPosition(ownerWindow);
+            var ownedPosition = GetPosition(ownedWindow);
+
+            // Owned Window moves 
+            var moveButton = ownedWindow.FindElementByAccessibilityId("MoveButton");
+            moveButton.Click();
+            Thread.Sleep(1000);
+
+            Assert.Equal(GetPosition(ownerWindow), ownerPosition);
+            Assert.NotEqual(GetPosition(ownedWindow), ownedPosition);
+
+            PixelPoint GetPosition(AppiumWebElement window)
+            {
+                return PixelPoint.Parse(window.FindElementByAccessibilityId("CurrentPosition").Text);
+            }
+        }
+
         [Theory]
         [InlineData(ShowWindowMode.NonOwned, true)]
         [InlineData(ShowWindowMode.Owned, true)]
@@ -262,7 +291,7 @@ namespace Avalonia.IntegrationTests.Appium
         {
             using (OpenWindow(null, mode, WindowStartupLocation.Manual, canResize: false, extendClientArea: extendClientArea))
             {
-                var secondaryWindow = GetWindow("SecondaryWindow");
+                var secondaryWindow = Session.GetWindowById("SecondaryWindow");
                 AppiumWebElement? maximizeButton;
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -279,6 +308,44 @@ namespace Avalonia.IntegrationTests.Appium
                 }
 
                 Assert.False(maximizeButton.Enabled);
+            }
+        }
+
+        [Fact]
+        public void Changing_SystemDecorations_Should_Not_Change_Frame_Size_And_Position()
+        {
+            using (OpenWindow(null, ShowWindowMode.NonOwned, WindowStartupLocation.Manual))
+            {
+                var info = GetWindowInfo();
+
+                Session.FindElementByAccessibilityId("CurrentSystemDecorations").Click();
+                Session.FindElementByAccessibilityId("SystemDecorationsNone").SendClick();
+                var updatedInfo = GetWindowInfo();
+                Assert.Equal(info.FrameSize, updatedInfo.FrameSize);
+                Assert.Equal(info.Position, updatedInfo.Position);
+
+                Session.FindElementByAccessibilityId("CurrentSystemDecorations").Click();
+                Session.FindElementByAccessibilityId("SystemDecorationsFull").SendClick();
+                updatedInfo = GetWindowInfo();
+                Assert.Equal(info.FrameSize, updatedInfo.FrameSize);
+                Assert.Equal(info.Position, updatedInfo.Position);
+            }
+        }
+
+        [Fact]
+        public void Changing_WindowState_Should_Not_Change_Frame_Size_And_Position()
+        {
+            using (OpenWindow())
+            {
+                var info = GetWindowInfo();
+
+                Session.FindElementByAccessibilityId("CurrentWindowState").SendClick();
+                Session.FindElementByAccessibilityId("WindowStateMaximized").SendClick();
+                Session.FindElementByAccessibilityId("CurrentWindowState").SendClick();
+                Session.FindElementByAccessibilityId("WindowStateNormal").SendClick();
+                var updatedInfo = GetWindowInfo();
+                Assert.Equal(info.FrameSize, updatedInfo.FrameSize);
+                Assert.Equal(info.Position, updatedInfo.Position);
             }
         }
 
@@ -344,16 +411,16 @@ namespace Avalonia.IntegrationTests.Appium
                 // the position of a centered window can be off by a bit. From initial testing, looks
                 // like this shouldn't be more than 10 pixels.
                 if (Math.Abs(expected.X - actual.X) > 10)
-                    throw new EqualException(expected, actual);
+                    throw EqualException.ForMismatchedValues(expected, actual);
                 if (Math.Abs(expected.Y - actual.Y) > 10)
-                    throw new EqualException(expected, actual);
+                    throw EqualException.ForMismatchedValues(expected, actual);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 if (Math.Abs(expected.X - actual.X) > 15)
-                    throw new EqualException(expected, actual);
+                    throw EqualException.ForMismatchedValues(expected, actual);
                 if (Math.Abs(expected.Y - actual.Y) > 15)
-                    throw new EqualException(expected, actual);
+                    throw EqualException.ForMismatchedValues(expected, actual);
             }
             else
             {
@@ -362,8 +429,8 @@ namespace Avalonia.IntegrationTests.Appium
         }
 
         private IDisposable OpenWindow(
-            Size? size,
-            ShowWindowMode mode,
+            Size? size = null,
+            ShowWindowMode mode = ShowWindowMode.NonOwned,
             WindowStartupLocation location = WindowStartupLocation.Manual,
             WindowState state = Controls.WindowState.Normal,
             bool canResize = true,
@@ -405,21 +472,6 @@ namespace Avalonia.IntegrationTests.Appium
                 extendClientAreaCheckBox.Click();
 
             return showButton.OpenWindowWithClick();
-        }
-
-        private AppiumWebElement GetWindow(string identifier)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                // The Avalonia a11y tree currently exposes two nested Window elements, this is a bug and should be fixed 
-                // but in the meantime use the `parent::' selector to return the parent "real" window. 
-                return Session.FindElementByXPath(
-                    $"XCUIElementTypeWindow//*[@identifier='{identifier}']/parent::XCUIElementTypeWindow");
-            }
-            else
-            {
-                return Session.FindElementByXPath($"//Window[@AutomationId='{identifier}']");
-            }
         }
 
         private WindowInfo GetWindowInfo()

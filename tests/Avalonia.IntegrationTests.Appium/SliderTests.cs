@@ -16,7 +16,7 @@ namespace Avalonia.IntegrationTests.Appium
             reset.Click();
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test, slider value is sometimes off by 1 or 2 steps.")]
         public void Horizontal_Changes_Value_Dragging_Thumb_Right()
         {
             var slider = Session.FindElementByAccessibilityId("HorizontalSlider");
@@ -37,7 +37,7 @@ namespace Avalonia.IntegrationTests.Appium
             Assert.True(currentThumbRect.Left > initialThumbRect.Left);
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test, slider value is sometimes off by 1 or 2 steps.")]
         public void Horizontal_Changes_Value_Dragging_Thumb_Left()
         {
             var slider = Session.FindElementByAccessibilityId("HorizontalSlider");

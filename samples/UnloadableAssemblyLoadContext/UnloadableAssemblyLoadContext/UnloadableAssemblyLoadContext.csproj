@@ -23,6 +23,10 @@
     <Folder Include="Models\"/>
     <AvaloniaResource Include="Assets\**"/>
   </ItemGroup>
+    <Compile Update="**\*.xaml.cs" DependentUpon="%(Filename)" />
+    <AvaloniaResource Include="**\*.xaml" />
+  </ItemGroup>
+
   <ImportGroup>
     <Import Project="..\..\..\build\BuildTargets.targets" Condition="Exists('..\..\..\build\BuildTargets.targets')" />
     <Import Project="..\..\..\build\SourceGenerators.props" />

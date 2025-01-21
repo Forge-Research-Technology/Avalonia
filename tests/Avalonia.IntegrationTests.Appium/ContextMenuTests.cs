@@ -1,5 +1,5 @@
-﻿using OpenQA.Selenium;
-using OpenQA.Selenium.Appium;
+﻿using System.Threading;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
 using Xunit;
 

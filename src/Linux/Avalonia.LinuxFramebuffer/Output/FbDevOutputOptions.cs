@@ -1,3 +1,5 @@
+#nullable enable
+
 using Avalonia.Platform;
 
 namespace Avalonia.LinuxFramebuffer.Output;
@@ -9,12 +11,14 @@ public class FbDevOutputOptions
     /// Defaults to the value in environment variable FRAMEBUFFER or /dev/fb0 when FRAMEBUFFER is not set
     /// </summary>
     public string? FileName { get; set; }
+
     /// <summary>
     /// The required pixel format for the frame buffer.
     /// A null value will leave the frame buffer in the current pixel format.
     /// Otherwise sets the frame buffer to the required format
     /// </summary>
     public PixelFormat? PixelFormat { get; set; }
+
     /// <summary>
     /// If set to true, double-buffering will be disabled and scene will be composed directly into mmap-ed memory region
     /// While this mode saves a blit, you need to check if it won't cause rendering artifacts your particular device.
@@ -25,4 +29,10 @@ public class FbDevOutputOptions
     /// The initial scale factor to use
     /// </summary>
     public double Scaling { get; set; } = 1;
+
+    /// <summary>
+    /// If set to true, FBIO_WAITFORVSYNC ioctl and following memcpy call will run on a dedicated thread
+    /// saving current one from doing nothing in a blocking call
+    /// </summary>
+    public bool? UseAsyncFrontBufferBlit { get; set; }
 }
