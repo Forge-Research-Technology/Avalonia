@@ -95,6 +95,28 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 return event;
     }];
 
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDragged handler:^NSEvent * (NSEvent * event) {
+        // NSLog(@"MONITOR drag START");
+
+        if ([event window] != this->parentWindow) {
+            // NSLog(@"MONITOR drag window=FALSE -> normal chain");
+            return event;
+        }
+        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
+        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto point = [View translateLocalPoint:avnPoint];
+
+        auto hitTest = this->BaseEvents->HitTest(point);
+
+        if (hitTest == false) {
+            // NSLog(@"MONITOR drag outside overlay -> normal chain");
+            return event;
+        } else {
+            UpdateCursor();
+            [View mouseDragged:event]; 
+            return nil;
+        }
+    }];
     
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;

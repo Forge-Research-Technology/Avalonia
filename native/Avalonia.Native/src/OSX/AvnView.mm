@@ -405,7 +405,16 @@
 - (void)mouseDragged:(NSEvent *)event
 {
     [self mouseEvent:event withType:Move];
-    [super mouseDragged:event];
+
+    auto localPoint = [self convertPoint:[event locationInWindow] toView:self];
+    auto avnPoint = [AvnView toAvnPoint:localPoint];
+    auto point = [self translateLocalPoint:avnPoint];
+
+    if (_parent != nullptr && _parent->BaseEvents->HitTest(point)) {
+        _parent->UpdateCursor();
+    } else {
+        [super mouseDragged:event];
+    }
 }
 
 - (void)otherMouseDragged:(NSEvent *)event
