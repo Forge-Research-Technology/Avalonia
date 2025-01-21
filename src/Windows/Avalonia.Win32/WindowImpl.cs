@@ -265,7 +265,7 @@ namespace Avalonia.Win32
             }
         }
 
-        public ScreenImpl Screen { get; }
+        internal ScreenImpl Screen { get; }
 
         public IPlatformHandle Handle { get; private set; }
 
@@ -1476,11 +1476,6 @@ namespace Avalonia.Win32
 
                 if (_shown || forceChanges)
                 {
-                    if (newProperties.Decorations == SystemDecorations.Full)
-                    {
-                        AdjustWindowRectEx(ref newRect, (uint)style, false, (uint)GetExtendedStyle());
-                    }
-
                     SetWindowPos(_hwnd, IntPtr.Zero, 0, 0, 0 ,0,
                         SetWindowPosFlags.SWP_NOZORDER | SetWindowPosFlags.SWP_NOACTIVATE |
                         SetWindowPosFlags.SWP_NOSIZE | SetWindowPosFlags.SWP_NOMOVE |

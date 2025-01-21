@@ -6,5 +6,10 @@ namespace Avalonia.Win32
     {
         private static SimpleWindow s_simpleWindow = new(null);
         public static IntPtr Handle { get; } = s_simpleWindow.Handle;
+
+        public static void Destroy()
+        {
+            s_simpleWindow.Dispose();
+        }
     }
 }

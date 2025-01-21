@@ -4,7 +4,7 @@ namespace Avalonia.Win32
 {
     public static class Win32TypeExtensions
     {
-        public static PixelRect ToPixelRect(this Windows.Win32.Foundation.RECT rect)
+        internal static PixelRect ToPixelRect(this Windows.Win32.Foundation.RECT rect)
         {
             return new PixelRect(rect.left, rect.top, rect.right - rect.left,
                 rect.bottom - rect.top);

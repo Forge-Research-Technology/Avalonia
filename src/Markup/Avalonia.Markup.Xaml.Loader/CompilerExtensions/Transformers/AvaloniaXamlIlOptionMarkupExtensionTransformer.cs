@@ -346,8 +346,6 @@ internal class AvaloniaXamlIlOptionMarkupExtensionTransformer : IXamlAstTransfor
         public IReadOnlyList<IXamlType> GenericParameters => [];
         public IReadOnlyList<IXamlType> GenericArguments => [];
 
-        public IXamlParameterInfo GetParameterInfo(int index) => new AnonymousParameterInfo(Parameters[index], index);
-
         public void EmitCall(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen)
         {
             // At this point this extension will be called from MarkupExtensionEmitter.

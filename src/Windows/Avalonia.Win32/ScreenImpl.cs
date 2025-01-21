@@ -10,7 +10,7 @@ using Win32Interop = Windows.Win32;
 
 namespace Avalonia.Win32;
 
-public unsafe class ScreenImpl : ScreensBase<nint, WinScreen>
+internal unsafe class ScreenImpl : ScreensBase<nint, WinScreen>
 {
     protected override int GetScreenCount() => GetSystemMetrics(SystemMetric.SM_CMONITORS);
 

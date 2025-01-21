@@ -2123,11 +2123,11 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct MONITORINFOEX
+        internal struct MONITORINFOEX
         {
-            public MONITORINFO Base;
+            internal MONITORINFO Base;
 
-            public __char_32 szDevice;
+            internal __char_32 szDevice;
 
             public static MONITORINFOEX Create()
             {

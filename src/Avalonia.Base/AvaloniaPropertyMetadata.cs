@@ -8,7 +8,6 @@ namespace Avalonia
     /// </summary>
     public abstract class AvaloniaPropertyMetadata
     {
-        private bool _isReadOnly;
         private BindingMode _defaultBindingMode;
 
         /// <summary>
