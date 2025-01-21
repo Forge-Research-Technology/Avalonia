@@ -46,7 +46,7 @@ namespace Avalonia.Native
             
             using (var e = new WindowEvents(this))
             {
-                Init(_native = factory.CreateOverlay(parentWindow, parentView, e), factory.CreateScreens());
+                Init(new MacOSTopLevelHandle(_native = factory.CreateOverlay(parentWindow, parentView, e)));
             }
             
             // nativeMenuExporter isn't needed here (the main window has already created its menus)

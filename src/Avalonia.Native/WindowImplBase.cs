@@ -202,22 +202,17 @@ namespace Avalonia.Native
                 return result.AsComBool();
             }
         }
-       
-        public void Activate()
-        {
-            _native?.Activate();
-        }
 
         public PixelPoint PPTClipViewOrigin
         {
-            get => _native?.PPTClipViewOrigin.ToAvaloniaPixelPoint() ?? default;
+            get => Native?.PPTClipViewOrigin.ToAvaloniaPixelPoint() ?? default;
         }
 
         public unsafe Bitmap TakeScreenshot()
         {
             void* bufferData = null;
             int bufferLength = 0;
-            _native?.TakeScreenshot(&bufferData, &bufferLength);
+            Native?.TakeScreenshot(&bufferData, &bufferLength);
 
             if (bufferData == null || bufferLength == 0) {
                 throw new Exception("Error taking screenshot");
@@ -236,7 +231,7 @@ namespace Avalonia.Native
             }
 
             int cancel = 0;
-            AvnColor _outputColor = _native?.PickColor(_initialColor, &cancel) ?? default;
+            AvnColor _outputColor = Native?.PickColor(_initialColor, &cancel) ?? default;
 
             if (cancel != 0) {
                 return null;
