@@ -32,7 +32,7 @@ jobs:
   variables:
     SolutionDir: '$(Build.SourcesDirectory)'
   pool:
-    vmImage: 'macos-12'
+    vmImage: 'macos-latest'
   steps:
   - task: UseDotNet@2
     displayName: 'Use .NET Core SDK 6.0.404'
