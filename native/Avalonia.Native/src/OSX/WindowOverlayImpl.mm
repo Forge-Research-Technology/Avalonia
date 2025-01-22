@@ -96,10 +96,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     }];
 
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDragged handler:^NSEvent * (NSEvent * event) {
-        // NSLog(@"MONITOR drag START");
 
         if ([event window] != this->parentWindow) {
-            // NSLog(@"MONITOR drag window=FALSE -> normal chain");
             return event;
         }
         auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
@@ -109,7 +107,6 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         auto hitTest = this->BaseEvents->HitTest(point);
 
         if (hitTest == false) {
-            // NSLog(@"MONITOR drag outside overlay -> normal chain");
             return event;
         } else {
             UpdateCursor();
