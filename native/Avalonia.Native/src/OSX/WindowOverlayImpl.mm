@@ -94,26 +94,6 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
                 return event;
     }];
-
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDragged handler:^NSEvent * (NSEvent * event) {
-
-        if ([event window] != this->parentWindow) {
-            return event;
-        }
-        auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
-        auto avnPoint = [AvnView toAvnPoint:localPoint];
-        auto point = [View translateLocalPoint:avnPoint];
-
-        auto hitTest = this->BaseEvents->HitTest(point);
-
-        if (hitTest == false) {
-            return event;
-        } else {
-            UpdateCursor();
-            [View mouseDragged:event]; 
-            return nil;
-        }
-    }];
     
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
