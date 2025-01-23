@@ -406,13 +406,10 @@
 {
     [self mouseEvent:event withType:Move];
 
-    auto localPoint = [self convertPoint:[event locationInWindow] toView:self];
-    auto avnPoint = [AvnView toAvnPoint:localPoint];
-    auto point = [self translateLocalPoint:avnPoint];
+    if (_parent != nullptr && !_parent->IsOverlay()) {
+        // If inside PowerPoint overlay, refrain from forwarding the event further up
+        // This is because PowerPoint would overwrite our cursor icon and we don't want that
 
-    if (_parent != nullptr && _parent->BaseEvents->HitTest(point)) {
-        _parent->UpdateCursor();
-    } else {
         [super mouseDragged:event];
     }
 }
