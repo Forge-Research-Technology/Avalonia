@@ -405,7 +405,13 @@
 - (void)mouseDragged:(NSEvent *)event
 {
     [self mouseEvent:event withType:Move];
-    [super mouseDragged:event];
+
+    if (_parent != nullptr && !_parent->IsOverlay()) {
+        // If inside PowerPoint overlay, refrain from forwarding the event further up
+        // This is because PowerPoint would overwrite our cursor icon and we don't want that
+
+        [super mouseDragged:event];
+    }
 }
 
 - (void)otherMouseDragged:(NSEvent *)event
