@@ -94,7 +94,6 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
                 return event;
     }];
-
     
     [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;

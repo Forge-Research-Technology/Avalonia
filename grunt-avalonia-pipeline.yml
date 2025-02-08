@@ -32,7 +32,7 @@ jobs:
   variables:
     SolutionDir: '$(Build.SourcesDirectory)'
   pool:
-    vmImage: 'macos-12'
+    vmImage: 'macos-14'
   steps:
   - task: UseDotNet@2
     displayName: 'Use .NET Core SDK 6.0.404'
@@ -64,15 +64,18 @@ jobs:
         export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
         export DOTNET_CLI_TELEMETRY_OPTOUT=1
         ./build.sh --target GenerateCppHeaders --configuration Release 
+  
+  - script: xcodebuild -showsdks
+    displayName: List SDKs
 
   - task: Xcode@5
     inputs:
       actions: 'build'
       scheme: ''
-      sdk: 'macosx12.3'
+      sdk: 'macosx14.5'
       configuration: 'Release'
       xcWorkspacePath: '**/*.xcodeproj/project.xcworkspace'
-      xcodeVersion: '13' # Options: 8, 9, default, specifyPath
+      xcodeVersion: 'default' # Options: 8, 9, default, specifyPath
       args: '-derivedDataPath ./'
 
   - task: CmdLine@2
