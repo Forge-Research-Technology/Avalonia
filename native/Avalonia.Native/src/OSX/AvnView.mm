@@ -687,12 +687,29 @@
 
 - (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange
 {
-    if(actualRange){
-        range = *actualRange;
+    NSUInteger textLength = [_text length];
+
+    // Get the intersection of the range and the text length
+    NSRange validRange = NSIntersectionRange(range, NSMakeRange(0, textLength));
+    
+    // If the range is completely out of bounds, return nil. 
+    // This is to handle the case where the range is beyond the end of the text.
+    if (validRange.location > textLength) 
+    {
+        if (actualRange != NULL) 
+        {
+            *actualRange = NSMakeRange(NSNotFound, 0);
+        }
+        return nil;
     }
     
-    NSAttributedString* subString = [_text attributedSubstringFromRange:range];
-    
+    // Update actualRange if provided
+    if (actualRange != NULL) {
+        *actualRange = validRange;
+    }
+
+    // Get the substring for the valid range
+    NSAttributedString* subString = [_text attributedSubstringFromRange:validRange];
     return subString;
 }
 
