@@ -731,6 +731,10 @@ interface IAvnTopLevel : IUnknown
      HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode);
      
      HRESULT GetCurrentDisplayId(uint* ret);
+
+     HRESULT GetPPTClipViewOrigin(AvnPoint*ret);
+     HRESULT TakeScreenshot(void** ret, int* retLength);
+     HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret);
 }
 
 [uuid(e5aca675-02b7-4129-aa79-d6e417210bda), cpp-virtual-inherits]
@@ -755,10 +759,6 @@ interface IAvnWindowBase : IAvnTopLevel
      HRESULT ObtainNSWindowHandleRetained([intptr]void** retOut);
      HRESULT BeginDragAndDropOperation(AvnDragDropEffects effects, AvnPoint point,
                                               IAvnClipboard* clipboard, IAvnDndResultCallback* cb, [intptr]void* sourceHandle);
-
-     HRESULT GetPPTClipViewOrigin(AvnPoint*ret);
-     HRESULT TakeScreenshot(void** ret, int* retLength);
-     HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret);
 }
 
 [uuid(83e588f3-6981-4e48-9ea0-e1e569f79a91), cpp-virtual-inherits]

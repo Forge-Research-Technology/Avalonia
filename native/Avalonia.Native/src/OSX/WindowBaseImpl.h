@@ -76,16 +76,12 @@ public:
     virtual HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode) override;
                            
     virtual bool IsModal();
-    virtual bool IsOverlay();
 
     id<AvnWindowProtocol> GetWindowProtocol ();
                            
     virtual void BringToFront ();
 
     virtual bool CanZoom() { return false; }
-    virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
-    virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
-    virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
     virtual HRESULT SetParent(IAvnWindowBase* parent) override;
                            
 protected:

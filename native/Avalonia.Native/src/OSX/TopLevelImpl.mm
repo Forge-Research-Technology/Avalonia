@@ -267,6 +267,38 @@ HRESULT TopLevelImpl::GetCurrentDisplayId (CGDirectDisplayID* ret) {
     return S_OK;
 }
 
+HRESULT TopLevelImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
+HRESULT TopLevelImpl::TakeScreenshot(void** ret, int* retLength) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
+HRESULT TopLevelImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
+bool TopLevelImpl::IsOverlay()
+{
+    return false;
+}
+
 void TopLevelImpl::UpdateAppearance() {
     
 }

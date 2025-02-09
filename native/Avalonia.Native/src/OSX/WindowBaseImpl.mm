@@ -454,11 +454,6 @@ bool WindowBaseImpl::IsModal() {
     return false;
 }
 
-bool WindowBaseImpl::IsOverlay()
-{
-    return false;
-}
-
 void WindowBaseImpl::UpdateAppearance() {
     [Window setStyleMask:CalculateStyleMask()];
 }
@@ -496,33 +491,6 @@ id <AvnWindowProtocol> WindowBaseImpl::GetWindowProtocol() {
 void WindowBaseImpl::BringToFront()
 {
     // do nothing.
-}
-
-HRESULT WindowBaseImpl::GetPPTClipViewOrigin(AvnPoint *ret) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        // This should only be called on WindowOverlay
-        return E_FAIL;
-    }
-}
-
-HRESULT WindowBaseImpl::TakeScreenshot(void** ret, int* retLength) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        // This should only be called on WindowOverlay
-        return E_FAIL;
-    }
-}
-
-HRESULT WindowBaseImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        // This should only be called on WindowOverlay
-        return E_FAIL;
-    }
 }
 
 HRESULT WindowBaseImpl::SetParent(IAvnWindowBase *parent) {

@@ -60,6 +60,10 @@ public:
     virtual HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode) override;
 
     virtual HRESULT GetCurrentDisplayId (CGDirectDisplayID* ret) override;
+
+    virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
+    virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
+    virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
 protected:
     NSCursor *cursor;
     virtual void UpdateAppearance();
@@ -72,6 +76,7 @@ public:
                          
     void UpdateCursor();
     virtual void SetClientSize(NSSize size);
+    virtual bool IsOverlay();
 };
 
 #endif /* TopLevelImpl_h */

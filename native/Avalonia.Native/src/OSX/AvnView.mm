@@ -219,7 +219,7 @@
     
     id<AvnWindowProtocol> parentWindow = nullptr;
 
-    if (_parent->IsOverlay())
+    if (parent->IsOverlay())
     {
         return FALSE;
     }
@@ -330,7 +330,7 @@
         parent->TopLevelEvents->RawMouseEvent(type, timestamp, modifiers, point, delta);
     }
 
-    if (_parent == nullptr || !_parent->IsOverlay())
+    if (parent == nullptr || !parent->IsOverlay())
     {
         // We only forward the event when not overlay, otherwise will mess powerpoint
         [super mouseMoved:event];
@@ -428,7 +428,8 @@
 {
     [self mouseEvent:event withType:Move];
 
-    if (_parent != nullptr && !_parent->IsOverlay()) {
+    auto parent = _parent.tryGet();
+    if (parent != nullptr && !parent->IsOverlay()) {
         // If inside PowerPoint overlay, refrain from forwarding the event further up
         // This is because PowerPoint would overwrite our cursor icon and we don't want that
 
@@ -929,6 +930,11 @@
 - (NSView *)hitTest:(NSPoint)inputPoint {
     NSView *result = [super hitTest:inputPoint];
 
+    auto windowImpl = _parent.tryGetWithCast<WindowImpl>();
+    if(windowImpl == nullptr){
+        return result;
+    }
+
     // Send the view name to c# for the focus manager
     // We will mainly be treating these scenarios:
     // Grunt area -> AvnView
@@ -941,14 +947,14 @@
     inputPoint.y += -[self frame].origin.y;
     
     auto localPoint = [self convertPoint:inputPoint toView:self];
-    auto avnPoint = [AvnView toAvnPoint:localPoint];
+    auto avnPoint = ToAvnPoint(localPoint);
     auto point = [self translateLocalPoint:avnPoint];
     bool hitTestResult = false;
 
     // Check if we hit any avalonia controls
     if (result == self)
     {
-        hitTestResult = _parent->BaseEvents->HitTest(point);
+        hitTestResult = windowImpl->WindowEvents->HitTest(point);
         if (!hitTestResult)
         {
             result = nil;
@@ -971,7 +977,7 @@
             }
             firstResponderName = NSStringFromClass([nextResponder class]);
         }
-        _parent->BaseEvents->LogFirstResponder([firstResponderName UTF8String]);
+        windowImpl->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
     });
 
     return result;
@@ -1002,19 +1008,19 @@
 -(void) overlayWindowDidBecomeKey:(NSNotification *)note
 {
     NSLog(@"overlayWindowDidBecomeKey");
-    if (_parent == nullptr)
-    {
+    auto windowImpl = _parent.tryGetWithCast<WindowImpl>();
+    if(windowImpl == nullptr){
         return;
     }
 
-    _parent->BaseEvents->Activated();
+    windowImpl->WindowEvents->Activated();
 }
 
 -(void) overlayWindowDidResignKey:(NSNotification *)note
 {
     NSLog(@"overlayWindowDidResignKey");
-    if (_parent == nullptr)
-    {
+    auto windowImpl = _parent.tryGetWithCast<WindowImpl>();
+    if(windowImpl == nullptr){
         return;
     }
 
@@ -1026,7 +1032,7 @@
         // not just the overlay window. This is in order to ensure that opening child
         // windows continue to work properly (eg. NSColorPanel external window picker).
 
-        _parent->BaseEvents->Deactivated();
+        windowImpl->WindowEvents->Deactivated();
     }
 }
 
