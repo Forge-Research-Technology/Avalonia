@@ -13,7 +13,7 @@ using SkiaSharp;
 
 namespace Avalonia.Skia
 {
-    internal class GlyphTypefaceImpl : IGlyphTypeface2
+    public class GlyphTypefaceImpl : IGlyphTypeface2
     {
         private bool _isDisposed;
         private readonly SKTypeface _typeface;
@@ -171,6 +171,8 @@ namespace Avalonia.Skia
                 return supportedFeatures;
             }
         }
+
+        public SKTypeface UnsafeSKTypeface => _typeface;
 
         public Face Face { get; }
 
