@@ -1,6 +1,16 @@
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
+WindowOverlayImpl::~WindowOverlayImpl()
+{
+    [View removeFromSuperview];
+
+    for (id monitor in eventMonitors)
+    {
+        [NSEvent removeMonitor: monitor];
+    }
+}
+
 WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
@@ -23,7 +33,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
 
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
+    id mouseMovedMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
         //NSLog(@"MONITOR mouseMoved START");
 
         if ([event window] != this->parentWindow)
@@ -66,7 +76,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         }
     }];
 
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown handler:^NSEvent * (NSEvent * event) {
+    id leftMouseDownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown handler:^NSEvent * (NSEvent * event) {
         NSLog(@"MONITOR mouseDown START");
 
         if ([event window] != this->parentWindow)
@@ -95,7 +105,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
                 return event;
     }];
     
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
+    id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
         bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
@@ -182,6 +192,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             return event;
         }
     }];
+    
+    eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
 }
 
 
@@ -230,6 +242,15 @@ HRESULT WindowOverlayImpl::Activate() {
     }
 
     return S_OK;
+}
+
+HRESULT WindowOverlayImpl::Close()
+{
+    START_COM_CALL;
+    HRESULT result = WindowImpl::Close();
+    [View onClosed];
+    
+    return result;
 }
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
