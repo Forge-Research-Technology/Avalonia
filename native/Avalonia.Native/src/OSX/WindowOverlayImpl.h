@@ -12,6 +12,7 @@ private:
     NSView* parentView;
     NSView* canvasView;
     NSColorPanel* colorPanel;
+    bool isTrackingMouse;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
