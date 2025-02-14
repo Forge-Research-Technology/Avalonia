@@ -1264,7 +1264,7 @@ namespace Avalonia.Win32
             }
         }
 
-        private void MaximizeWithoutCoveringTaskbar()
+        protected virtual void MaximizeWithoutCoveringTaskbar()
         {
             var screen = Screen.ScreenFromHwnd(Hwnd, MONITOR.MONITOR_DEFAULTTONEAREST);
             if (screen?.WorkingArea is { } workingArea)
@@ -1346,7 +1346,7 @@ namespace Avalonia.Win32
             }
         }
 
-        private void UpdateWindowProperties(WindowProperties newProperties, bool forceChanges = false)
+        protected virtual void UpdateWindowProperties(WindowProperties newProperties, bool forceChanges = false)
         {
             var oldProperties = _windowProperties;
 
@@ -1737,9 +1737,13 @@ namespace Avalonia.Win32
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr SetFocus(IntPtr hWnd);
 
-        void IWindowImpl.ShowTaskbarIcon(bool value)
+        protected override void UpdateWindowProperties(WindowProperties newProperties, bool forceChanges = false)
         {
-            // To avoid unwanted code paths
+            // Prevent Avalonia from messing up overlay style
+        }
+        protected override void MaximizeWithoutCoveringTaskbar()
+        {
+            // Prevent Avalonia from messing up overlay position
         }
 
         private static int ToInt32(IntPtr ptr)
