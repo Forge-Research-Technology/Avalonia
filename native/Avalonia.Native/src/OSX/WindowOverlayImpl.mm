@@ -4,6 +4,7 @@
 WindowOverlayImpl::~WindowOverlayImpl()
 {
     [View removeFromSuperview];
+    [[NSNotificationCenter defaultCenter] removeObserver: View];
 
     for (id monitor in eventMonitors)
     {
