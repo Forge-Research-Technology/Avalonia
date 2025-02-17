@@ -30,6 +30,13 @@ namespace Avalonia.Controls.UnitTests
                 [!Layoutable.HeightProperty] = new Binding("Height"),
             });
 
+        private static FuncDataTemplate<ItemWithWidth> CanvasWithWidthTemplate = new((_, _) =>
+            new Canvas
+            {
+                Height = 100,
+                [!Layoutable.WidthProperty] = new Binding("Width"),
+            });
+
         [Fact]
         public void Creates_Initial_Items()
         {
@@ -45,7 +52,7 @@ namespace Avalonia.Controls.UnitTests
         public void Initializes_Initial_Control_Items()
         {
             using var app = App();
-            var items = Enumerable.Range(0, 100).Select(x => new Button { Width = 25, Height = 10});
+            var items = Enumerable.Range(0, 100).Select(x => new Button { Width = 25, Height = 10 });
             var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: null);
 
             Assert.Equal(1000, scroll.Extent.Height);
@@ -492,7 +499,7 @@ namespace Avalonia.Controls.UnitTests
         public void NthChild_Selector_Works()
         {
             using var app = App();
-            
+
             var style = new Style(x => x.OfType<ContentPresenter>().NthChild(5, 0))
             {
                 Setters = { new Setter(ListBoxItem.BackgroundProperty, Brushes.Red) },
@@ -500,9 +507,9 @@ namespace Avalonia.Controls.UnitTests
 
             var (target, _, _) = CreateTarget(styles: new[] { style });
             var realized = target.GetRealizedContainers()!.Cast<ContentPresenter>().ToList();
-            
+
             Assert.Equal(10, realized.Count);
-            
+
             for (var i = 0; i < 10; ++i)
             {
                 var container = realized[i];
@@ -537,7 +544,7 @@ namespace Avalonia.Controls.UnitTests
                 var expectedBackground = (i == 4 || i == 9) ? Brushes.Red : null;
 
                 Assert.Equal(i, index);
-                Assert.Equal(expectedBackground, ((Canvas) container.Child!).Background);
+                Assert.Equal(expectedBackground, ((Canvas)container.Child!).Background);
             }
         }
 
@@ -590,7 +597,7 @@ namespace Avalonia.Controls.UnitTests
                 var expectedBackground = (i == 0 || i == 5) ? Brushes.Red : null;
 
                 Assert.Equal(i, index);
-                Assert.Equal(expectedBackground, ((Canvas) container.Child!).Background);
+                Assert.Equal(expectedBackground, ((Canvas)container.Child!).Background);
             }
         }
 
@@ -762,7 +769,7 @@ namespace Avalonia.Controls.UnitTests
                 Layout(target);
 
                 Assert.True(
-                    target.FirstRealizedIndex >= index, 
+                    target.FirstRealizedIndex >= index,
                     $"{target.FirstRealizedIndex} is not greater or equal to {index}");
 
                 if (scroll.Offset.Y + scroll.Viewport.Height == scroll.Extent.Height)
@@ -801,7 +808,7 @@ namespace Avalonia.Controls.UnitTests
                 index = target.FirstRealizedIndex;
             }
         }
-        
+
         [Fact]
         public void Scrolling_Up_To_Smaller_Element_Does_Not_Cause_Jump()
         {
@@ -828,12 +835,12 @@ namespace Avalonia.Controls.UnitTests
                 Layout(target);
 
                 Assert.True(
-                    target.FirstRealizedIndex <= index, 
+                    target.FirstRealizedIndex <= index,
                     $"{target.FirstRealizedIndex} is not less than {index}");
                 Assert.True(
                     index - target.FirstRealizedIndex <= 1,
                     $"FirstIndex changed from {index} to {target.FirstRealizedIndex}");
-                
+
                 index = target.FirstRealizedIndex;
             }
         }
@@ -846,7 +853,7 @@ namespace Avalonia.Controls.UnitTests
             var (_, _, itemsControl) = CreateUnrootedTarget<ItemsControl>();
             var container = new Decorator { Margin = new Thickness(100) };
             var root = new TestRoot(true, container);
-            
+
             root.LayoutManager.ExecuteInitialLayoutPass();
 
             container.Child = itemsControl;
@@ -889,7 +896,7 @@ namespace Avalonia.Controls.UnitTests
 
             Assert.Null(firstItem.Parent);
             Assert.Null(firstItem.VisualParent);
-            Assert.Empty(itemsControl.ItemsPanelRoot!.Children);            
+            Assert.Empty(itemsControl.ItemsPanelRoot!.Children);
         }
 
         [Fact]
@@ -1038,7 +1045,7 @@ namespace Avalonia.Controls.UnitTests
         public void Can_Bind_Item_IsVisible()
         {
             using var app = App();
-            var style = CreateIsVisibleBindingStyle();            
+            var style = CreateIsVisibleBindingStyle();
             var items = Enumerable.Range(0, 100).Select(x => new ItemWithIsVisible(x)).ToList();
             var (target, scroll, itemsControl) = CreateTarget(items: items, styles: new[] { style });
             var container = target.ContainerFromIndex(2)!;
@@ -1130,7 +1137,7 @@ namespace Avalonia.Controls.UnitTests
             {
                 ev.Container.AddHandler(Control.RequestBringIntoViewEvent, (_, e) =>
                 {
-                    var dataContext = e.TargetObject.DataContext as ItemWithHeight;
+                    var dataContext = (ItemWithHeight)e.TargetObject!.DataContext!;
                     e.TargetRect = new Rect(dataContext.Height - 50, 0, 50, 10);
                 });
             };
@@ -1192,6 +1199,164 @@ namespace Avalonia.Controls.UnitTests
             AssertRealizedItems(target, itemsControl, 15, 5);
         }
 
+        [Fact]
+        public void ScrollIntoView_Correctly_Scrolls_Right_To_A_Page_Of_Smaller_Items()
+        {
+            using var app = App();
+
+            // First 10 items have width of 20, next 10 have width of 10.
+            var items = Enumerable.Range(0, 20).Select(x => new ItemWithWidth(x, ((29 - x) / 10) * 10));
+            var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: CanvasWithWidthTemplate, orientation: Orientation.Horizontal);
+
+            // Scroll the last item into view.
+            target.ScrollIntoView(19);
+
+            // At the time of the scroll, the average item width is 20, so the requested item
+            // should be placed at 380 (19 * 20) which therefore results in an extent of 390 to
+            // accommodate the item width of 10. This is obviously not a perfect answer, but
+            // it's the best we can do without knowing the actual item widths.
+            var container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(19));
+            Assert.Equal(new Rect(380, 0, 10, 100), container.Bounds);
+            Assert.Equal(new Size(100, 100), scroll.Viewport);
+            Assert.Equal(new Size(390, 100), scroll.Extent);
+            Assert.Equal(new Vector(290, 0), scroll.Offset);
+
+            // Items 10-19 should be visible.
+            AssertRealizedItems(target, itemsControl, 10, 10);
+        }
+
+        [Fact]
+        public void ScrollIntoView_Correctly_Scrolls_Right_To_A_Page_Of_Larger_Items()
+        {
+            using var app = App();
+
+            // First 10 items have width of 10, next 10 have width of 20.
+            var items = Enumerable.Range(0, 20).Select(x => new ItemWithWidth(x, ((x / 10) + 1) * 10));
+            var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: CanvasWithWidthTemplate, orientation: Orientation.Horizontal);
+
+            // Scroll the last item into view.
+            target.ScrollIntoView(19);
+
+            // At the time of the scroll, the average item width is 10, so the requested item
+            // should be placed at 190 (19 * 10) which therefore results in an extent of 210 to
+            // accommodate the item width of 20. This is obviously not a perfect answer, but
+            // it's the best we can do without knowing the actual item widths.
+            var container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(19));
+            Assert.Equal(new Rect(190, 0, 20, 100), container.Bounds);
+            Assert.Equal(new Size(100, 100), scroll.Viewport);
+            Assert.Equal(new Size(210, 100), scroll.Extent);
+            Assert.Equal(new Vector(110, 0), scroll.Offset);
+
+            // Items 15-19 should be visible.
+            AssertRealizedItems(target, itemsControl, 15, 5);
+        }
+
+        [Fact]
+        public void Extent_And_Offset_Should_Be_Updated_When_Containers_Resize()
+        {
+            using var app = App();
+
+            // All containers start off with a height of 50 (2 containers fit in viewport).
+            var items = Enumerable.Range(0, 20).Select(x => new ItemWithHeight(x, 50)).ToList();
+            var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: CanvasWithHeightTemplate);
+
+            // Scroll to the 5th item (containers 4 and 5 should be visible).
+            target.ScrollIntoView(5);
+            Assert.Equal(4, target.FirstRealizedIndex);
+            Assert.Equal(5, target.LastRealizedIndex);
+
+            // The extent should be 500 (10 * 50) and the offset should be 200 (4 * 50).
+            var container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(5));
+            Assert.Equal(new Rect(0, 250, 100, 50), container.Bounds);
+            Assert.Equal(new Size(100, 100), scroll.Viewport);
+            Assert.Equal(new Size(100, 1000), scroll.Extent);
+            Assert.Equal(new Vector(0, 200), scroll.Offset);
+
+            // Update the height of all items to 25 and run a layout pass.
+            foreach (var item in items)
+                item.Height = 25;
+            target.UpdateLayout();
+
+            // The extent should be updated to reflect the new heights. The offset should be
+            // unchanged but the first realized index should be updated to 8 (200 / 25).
+            Assert.Equal(new Size(100, 100), scroll.Viewport);
+            Assert.Equal(new Size(100, 500), scroll.Extent);
+            Assert.Equal(new Vector(0, 200), scroll.Offset);
+            Assert.Equal(8, target.FirstRealizedIndex);
+            Assert.Equal(11, target.LastRealizedIndex);
+        }
+
+        [Fact]
+        public void Focused_Container_Is_Positioned_Correctly_when_Container_Size_Change_Causes_It_To_Be_Moved_Out_Of_Visible_Viewport()
+        {
+            using var app = App();
+
+            // All containers start off with a height of 50 (2 containers fit in viewport).
+            var items = Enumerable.Range(0, 20).Select(x => new ItemWithHeight(x, 50)).ToList();
+            var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: CanvasWithHeightTemplate);
+
+            // Scroll to the 5th item (containers 4 and 5 should be visible).
+            target.ScrollIntoView(5);
+            Assert.Equal(4, target.FirstRealizedIndex);
+            Assert.Equal(5, target.LastRealizedIndex);
+
+            // Focus the 5th item.
+            var container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(5));
+            container.Focusable = true;
+            container.Focus();
+
+            // Update the height of all items to 25 and run a layout pass.
+            foreach (var item in items)
+                item.Height = 25;
+            target.UpdateLayout();
+
+            // The focused container should now be outside the realized range.
+            Assert.Equal(8, target.FirstRealizedIndex);
+            Assert.Equal(11, target.LastRealizedIndex);
+
+            // The container should still exist and be positioned outside the visible viewport.
+            container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(5));
+            Assert.Equal(new Rect(0, 125, 100, 25), container.Bounds);
+        }
+
+        [Fact]
+        public void Focused_Container_Is_Positioned_Correctly_when_Container_Size_Change_Causes_It_To_Be_Moved_Into_Visible_Viewport()
+        {
+            using var app = App();
+
+            // All containers start off with a height of 25 (4 containers fit in viewport).
+            var items = Enumerable.Range(0, 20).Select(x => new ItemWithHeight(x, 25)).ToList();
+            var (target, scroll, itemsControl) = CreateTarget(items: items, itemTemplate: CanvasWithHeightTemplate);
+
+            // Scroll to the 5th item (containers 4-7 should be visible).
+            target.ScrollIntoView(7);
+            Assert.Equal(4, target.FirstRealizedIndex);
+            Assert.Equal(7, target.LastRealizedIndex);
+
+            // Focus the 7th item.
+            var container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(7));
+            container.Focusable = true;
+            container.Focus();
+
+            // Scroll up to the 3rd item (containers 3-6 should still be visible).
+            target.ScrollIntoView(3);
+            Assert.Equal(3, target.FirstRealizedIndex);
+            Assert.Equal(6, target.LastRealizedIndex);
+
+            // Update the height of all items to 20 and run a layout pass.
+            foreach (var item in items)
+                item.Height = 20;
+            target.UpdateLayout();
+
+            // The focused container should now be inside the realized range.
+            Assert.Equal(3, target.FirstRealizedIndex);
+            Assert.Equal(7, target.LastRealizedIndex);
+
+            // The container should be positioned correctly.
+            container = Assert.IsType<ContentPresenter>(target.ContainerFromIndex(7));
+            Assert.Equal(new Rect(0, 140, 100, 20), container.Bounds);
+        }
+
         private static IReadOnlyList<int> GetRealizedIndexes(VirtualizingStackPanel target, ItemsControl itemsControl)
         {
             return target.GetRealizedElements()
@@ -1242,21 +1407,24 @@ namespace Avalonia.Controls.UnitTests
         private static (VirtualizingStackPanel, ScrollViewer, ItemsControl) CreateTarget(
             IEnumerable<object>? items = null,
             Optional<IDataTemplate?> itemTemplate = default,
-            IEnumerable<Style>? styles = null)
+            IEnumerable<Style>? styles = null,
+            Orientation orientation = Orientation.Vertical)
         {
             return CreateTarget<ItemsControl>(
-                items: items, 
-                itemTemplate: itemTemplate, 
-                styles: styles);
+                items: items,
+                itemTemplate: itemTemplate,
+                styles: styles,
+                orientation: orientation);
         }
 
         private static (VirtualizingStackPanel, ScrollViewer, T) CreateTarget<T>(
             IEnumerable<object>? items = null,
             Optional<IDataTemplate?> itemTemplate = default,
-            IEnumerable<Style>? styles = null)
+            IEnumerable<Style>? styles = null,
+            Orientation orientation = Orientation.Vertical)
                 where T : ItemsControl, new()
         {
-            var (target, scroll, itemsControl) = CreateUnrootedTarget<T>(items, itemTemplate);
+            var (target, scroll, itemsControl) = CreateUnrootedTarget<T>(items, itemTemplate, orientation);
             var root = CreateRoot(itemsControl, styles: styles);
 
             root.LayoutManager.ExecuteInitialLayoutPass();
@@ -1266,10 +1434,14 @@ namespace Avalonia.Controls.UnitTests
 
         private static (VirtualizingStackPanel, ScrollViewer, T) CreateUnrootedTarget<T>(
             IEnumerable<object>? items = null,
-            Optional<IDataTemplate?> itemTemplate = default)
+            Optional<IDataTemplate?> itemTemplate = default,
+            Orientation orientation = Orientation.Vertical)
                 where T : ItemsControl, new()
         {
-            var target = new VirtualizingStackPanel();
+            var target = new VirtualizingStackPanel
+            {
+                Orientation = orientation,
+            };
 
             items ??= new ObservableCollection<string>(Enumerable.Range(0, 100).Select(x => $"Item {x}"));
 
@@ -1282,8 +1454,15 @@ namespace Avalonia.Controls.UnitTests
             {
                 Name = "PART_ScrollViewer",
                 Content = presenter,
-                Template = ScrollViewerTemplate(),
             };
+
+            if (orientation == Orientation.Horizontal)
+            {
+                scroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+                scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            }
+
+            scroll.Template = ScrollViewerTemplate();
 
             var itemsControl = new T
             {
@@ -1291,25 +1470,13 @@ namespace Avalonia.Controls.UnitTests
                 Template = new FuncControlTemplate<T>((_, ns) => scroll.RegisterInNameScope(ns)),
                 ItemsPanel = new FuncTemplate<Panel?>(() => target),
                 ItemTemplate = itemTemplate.GetValueOrDefault(DefaultItemTemplate()),
-                // master branch doesn't have this code, because ContentControl delivered controls always have a template there. 
-                ItemContainerTheme = new ControlTheme(typeof(ListBoxItem))
-                {
-                    Setters =
-                    {
-                        new Setter(TemplatedControl.TemplateProperty, new FuncControlTemplate((_, ns) => new ContentPresenter
-                        {
-                            Name = "PART_ContentPresenter",
-                            [~ListBoxItem.ContentProperty] = new TemplateBinding(ListBoxItem.ContentProperty),
-                        }.RegisterInNameScope(ns)))
-                    }
-                }
             };
 
             return (target, scroll, itemsControl);
         }
 
         private static TestRoot CreateRoot(
-            Control? child, 
+            Control? child,
             Size? clientSize = null,
             IEnumerable<Style>? styles = null)
         {
@@ -1366,16 +1533,42 @@ namespace Avalonia.Controls.UnitTests
 
         private static IDisposable App() => UnitTestApplication.Start(TestServices.RealFocus);
 
-        private class ItemWithHeight
+        private class ItemWithHeight : NotifyingBase
         {
+            private double _height;
+
             public ItemWithHeight(int index, double height = 10)
             {
                 Caption = $"Item {index}";
                 Height = height;
             }
-            
+
             public string Caption { get; set; }
-            public double Height { get; set; }
+
+            public double Height
+            {
+                get => _height;
+                set => SetField(ref _height, value);
+            }
+        }
+
+        private class ItemWithWidth : NotifyingBase
+        {
+            private double _width;
+
+            public ItemWithWidth(int index, double width = 10)
+            {
+                Caption = $"Item {index}";
+                Width = width;
+            }
+
+            public string Caption { get; set; }
+
+            public double Width
+            {
+                get => _width;
+                set => SetField(ref _width, value);
+            }
         }
 
         private class ItemWithIsVisible : NotifyingBase

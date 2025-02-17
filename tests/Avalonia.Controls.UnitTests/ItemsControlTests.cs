@@ -717,7 +717,7 @@ namespace Avalonia.Controls.UnitTests
             var target = CreateTarget(
                 dataContext: "Base",
                 itemsSource: items,
-                dataTemplates: new[] { dataTemplate });
+                itemTemplate: dataTemplate);
             var panel = Assert.IsAssignableFrom<Panel>(target.ItemsPanelRoot);
             var dataContexts = panel.Children
                 .Do(x => (x as ContentPresenter)?.UpdateChild())
@@ -974,6 +974,29 @@ namespace Avalonia.Controls.UnitTests
             target.Items.RemoveAt(1);
 
             Assert.Equal(1, raised);
+        }
+
+        [Fact]
+        public void ContainerClearing_Is_Raised_When_ItemsSource_Is_Cleared()
+        {
+            using var app = Start();
+            var itemsSource = new ObservableCollection<object> { "Foo", "Bar", "Baz" };
+            var target = CreateTarget(itemsSource: itemsSource);
+
+            var expectedContainers = itemsSource.Select(x => target.ContainerFromItem(x)).ToArray();
+            var actualContainers = new List<Control>();
+            var raised = 0;
+
+            target.ContainerClearing += (s, e) =>
+            {
+                actualContainers.Add(e.Container);
+                ++raised;
+            };
+
+            itemsSource.Clear();
+
+            Assert.Equal(3, raised);
+            Assert.Equal(expectedContainers, actualContainers);
         }
 
         [Fact]
@@ -1248,7 +1271,7 @@ namespace Avalonia.Controls.UnitTests
                     focusManager: new FocusManager(),
                     fontManagerImpl: new HeadlessFontManagerStub(),
                     keyboardDevice: () => new KeyboardDevice(),
-                    keyboardNavigation: new KeyboardNavigationHandler(),
+                    keyboardNavigation: () => new KeyboardNavigationHandler(),
                     inputManager: new InputManager(),
                     renderInterface: new HeadlessPlatformRenderInterface(),
                     textShaperImpl: new HeadlessTextShaperStub()));

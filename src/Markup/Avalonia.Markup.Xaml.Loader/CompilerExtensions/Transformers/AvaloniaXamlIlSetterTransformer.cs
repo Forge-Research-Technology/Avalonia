@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using XamlX;
@@ -9,6 +10,14 @@ using XamlX.TypeSystem;
 
 namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
 {
+    class XamlStyleTransformException : XamlTransformException
+    {
+        public XamlStyleTransformException(string message, IXamlLineInfo lineInfo, Exception? innerException = null)
+            : base(message, lineInfo, innerException)
+        {
+        }
+    }
+
     class AvaloniaXamlIlSetterTransformer : IXamlAstTransformer
     {
         public IXamlAstNode Transform(AstTransformationContext context, IXamlAstNode node)
@@ -17,8 +26,9 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                   && on.Type.GetClrType().FullName == "Avalonia.Styling.Setter"))
                 return node;
 
-            IXamlType targetType = null;
-            IXamlLineInfo lineInfo = null;
+            IXamlType? targetType = null;
+
+            var avaloniaTypes = context.GetAvaloniaTypes();
 
             var styleParent = context.ParentNodes()
                 .OfType<AvaloniaXamlIlTargetTypeMetadataNode>()
@@ -27,27 +37,32 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             if (styleParent != null)
             {
                 targetType = styleParent.TargetType.GetClrType()
-                             ?? throw new XamlParseException("Can not find parent Style Selector or ControlTemplate TargetType. If setter is not part of the style, you can set x:SetterTargetType directive on its parent.", node);
-                lineInfo = on;
+                             ?? throw new XamlStyleTransformException("Can not find parent Style Selector or ControlTemplate TargetType. If setter is not part of the style, you can set x:SetterTargetType directive on its parent.", node);
             }
 
             if (targetType == null)
             {
-                throw new XamlParseException("Could not determine target type of Setter", node);
+                throw new XamlStyleTransformException("Could not determine target type of Setter", node);
             }
 
-            IXamlType propType = null;
+            IXamlType? propType;
             var property = @on.Children.OfType<XamlAstXamlPropertyValueNode>()
                 .FirstOrDefault(x => x.Property.GetClrProperty().Name == "Property");
             if (property != null)
             {
-                var propertyName = property.Values.OfType<XamlAstTextNode>().FirstOrDefault()?.Text;
-                if (propertyName == null)
-                    throw new XamlParseException("Setter.Property must be a string", node);
+                var avaloniaPropertyNode = property.Values.OfType<IXamlIlAvaloniaPropertyNode>().FirstOrDefault();
+                if (avaloniaPropertyNode is null)
+                {
+                    var propertyName = property.Values.OfType<XamlAstTextNode>().FirstOrDefault()?.Text;
+                    if (propertyName == null)
+                        throw new XamlStyleTransformException("Setter.Property must be a string.", node);
 
-                var avaloniaPropertyNode = XamlIlAvaloniaPropertyHelper.CreateNode(context, propertyName,
-                    new XamlAstClrTypeReference(lineInfo, targetType, false), property.Values[0]);
-                property.Values = new List<IXamlAstValueNode> {avaloniaPropertyNode};
+                    avaloniaPropertyNode = XamlIlAvaloniaPropertyHelper.CreateNode(context, propertyName,
+                        new XamlAstClrTypeReference(on, targetType, false), property.Values[0]);
+
+                    property.Values = new List<IXamlAstValueNode> {avaloniaPropertyNode};
+                }
+
                 propType = avaloniaPropertyNode.AvaloniaPropertyType;
             }
             else
@@ -55,26 +70,70 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                 var propertyPath = on.Children.OfType<XamlAstXamlPropertyValueNode>()
                     .FirstOrDefault(x => x.Property.GetClrProperty().Name == "PropertyPath");
                 if (propertyPath == null)
-                    throw new XamlX.XamlParseException("Setter without a property or property path is not valid", node);
+                    throw new XamlStyleTransformException("Setter without a property or property path is not valid", node);
                 if (propertyPath.Values[0] is IXamlIlPropertyPathNode ppn
                     && ppn.PropertyType != null)
                     propType = ppn.PropertyType;
                 else
-                    throw new XamlX.XamlParseException("Unable to get the property path property type", node);
+                    throw new XamlStyleTransformException("Unable to get the property path property type", node);
             }
 
             var valueProperty = on.Children
-                .OfType<XamlAstXamlPropertyValueNode>().FirstOrDefault(p => p.Property.GetClrProperty().Name == "Value");
-            if (valueProperty?.Values?.Count == 1 && valueProperty.Values[0] is XamlAstTextNode)
-            {
-                if (!XamlTransformHelpers.TryGetCorrectlyTypedValue(context, valueProperty.Values[0],
-                        propType, out var converted))
-                    throw new XamlParseException(
-                        $"Unable to convert property value to {propType.GetFqn()}",
-                        valueProperty.Values[0]);
+                .OfType<XamlAstXamlPropertyValueNode>()
+                .FirstOrDefault(p => p.Property.GetClrProperty().Name == "Value");
 
-                valueProperty.Property = new SetterValueProperty(valueProperty.Property,
-                    on.Type.GetClrType(), propType, context.GetAvaloniaTypes());
+            XamlAstTextNode? textValue = null;
+
+            if (valueProperty is not null)
+            {
+                if (valueProperty.Values.Count == 1)
+                    textValue = valueProperty.Values[0] as XamlAstTextNode;
+            }
+            else
+            {
+                var nonPropertyChildren = on.Children
+                    .Where(child => child is not XamlAstXamlPropertyValueNode)
+                    .ToArray();
+
+                if (nonPropertyChildren.Length == 1)
+                    textValue = nonPropertyChildren[0] as XamlAstTextNode;
+            }
+
+            if (textValue is not null
+                && XamlTransformHelpers.TryGetCorrectlyTypedValue(context, textValue,
+                    propType, out _))
+            {
+                var setterValueProperty = new SetterValueProperty(
+                    (IXamlLineInfo?)valueProperty?.Property ?? textValue,
+                    on.Type.GetClrType(), propType, avaloniaTypes);
+                if (valueProperty is not null)
+                {
+                    valueProperty.Property = setterValueProperty;
+                }
+                else
+                {
+                    on.Children[on.Children.IndexOf(textValue)] =
+                        new XamlAstXamlPropertyValueNode(textValue, setterValueProperty, textValue, false);
+                }
+            }
+            // If we have `Value` property with plain text content that wasn't parsed, throw an exception.
+            else if (valueProperty is not null && textValue is not null)
+            {
+                throw new XamlStyleTransformException($"Unable to convert property value to {propType.GetFqn()}", textValue);
+            }
+
+            // Handling a very specific case, when ITemplate value is used inside of Setter.Value,
+            // Which then is materialized for a specific control, and usually would set TemplatedParent.
+            // Note: this code is not always valid, as TemplatedParent might not be set,
+            // but we have better validation in runtime for TemplatedBinding.
+            // See Correctly_Resolve_TemplateBinding_In_Theme_Detached_Template test.
+            if (!avaloniaTypes.ITemplateOfControl.IsAssignableFrom(propType)
+                && on.Children.OfType<XamlAstObjectNode>().FirstOrDefault() is { } valueObj
+                && avaloniaTypes.ITemplateOfControl.IsAssignableFrom(valueObj.Type.GetClrType()))
+            {
+                on.Children[on.Children.IndexOf(valueObj)] = new AvaloniaXamlIlTargetTypeMetadataNode(valueObj,
+                    new XamlAstClrTypeReference(on, targetType, false),
+                    AvaloniaXamlIlTargetTypeMetadataNode.ScopeTypes.ControlTemplate);
             }
 
             return node;
@@ -100,6 +159,8 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                 public IXamlType TargetType { get; }
                 public PropertySetterBinderParameters BinderParameters { get; }
                 public IReadOnlyList<IXamlType> Parameters { get; }
+                public IReadOnlyList<IXamlCustomAttribute> CustomAttributes => _method.CustomAttributes;
+
                 public void Emit(IXamlILEmitter codegen)
                 {
                     if (_type.IsValueType)
@@ -120,10 +181,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                     };
                 }
 
-                private bool Equals(XamlIlDirectCallPropertySetter other) 
-                    => Equals(_method, other._method) && Equals(_type, other._type);
+                private bool Equals(XamlIlDirectCallPropertySetter? other)
+                    => other is not null && Equals(_method, other._method) && Equals(_type, other._type);
 
-                public override bool Equals(object obj) 
+                public override bool Equals(object? obj)
                     => Equals(obj as XamlIlDirectCallPropertySetter);
 
                 public override int GetHashCode() 

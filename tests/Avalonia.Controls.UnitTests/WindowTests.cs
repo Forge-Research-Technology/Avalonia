@@ -114,6 +114,8 @@ namespace Avalonia.Controls.UnitTests
                 var window = new Window();
 
                 window.Show();
+                Assert.True(window.IsVisible);
+
                 windowImpl.Object.Closed();
 
                 Assert.False(window.IsVisible);
@@ -527,7 +529,7 @@ namespace Avalonia.Controls.UnitTests
             windowImpl.Setup(x => x.ClientSize).Returns(new Size(800, 480));
             windowImpl.Setup(x => x.DesktopScaling).Returns(1);
             windowImpl.Setup(x => x.RenderScaling).Returns(1);
-            windowImpl.Setup(x => x.Screen).Returns(screens.Object);
+            windowImpl.Setup(x => x.TryGetFeature(It.Is<Type>(t => t == typeof(IScreenImpl)))).Returns(screens.Object);
 
             using (UnitTestApplication.Start(TestServices.StyledWindow))
             {
@@ -563,7 +565,7 @@ namespace Avalonia.Controls.UnitTests
             windowImpl.Setup(x => x.ClientSize).Returns(new Size(800, 480));
             windowImpl.Setup(x => x.DesktopScaling).Returns(1);
             windowImpl.Setup(x => x.RenderScaling).Returns(1);
-            windowImpl.Setup(x => x.Screen).Returns(screens.Object);
+            windowImpl.Setup(x => x.TryGetFeature(It.Is<Type>(t => t == typeof(IScreenImpl)))).Returns(screens.Object);
 
             using (UnitTestApplication.Start(TestServices.StyledWindow))
             {
@@ -592,7 +594,7 @@ namespace Avalonia.Controls.UnitTests
             var windowImpl = MockWindowingPlatform.CreateWindowMock(400, 300);
             windowImpl.Setup(x => x.DesktopScaling).Returns(1.75);
             windowImpl.Setup(x => x.RenderScaling).Returns(1.75);
-            windowImpl.Setup(x => x.Screen).Returns(screens.Object);
+            windowImpl.Setup(x => x.TryGetFeature(It.Is<Type>(t => t == typeof(IScreenImpl)))).Returns(screens.Object);
             
             using (UnitTestApplication.Start(TestServices.StyledWindow))
             {
@@ -650,6 +652,23 @@ namespace Avalonia.Controls.UnitTests
 
                     Assert.Equal(window.Position, expectedPosition);
                 }
+            }
+        }
+
+        [Fact]
+        public void Window_Topmost_By_Default_Should_Configure_PlatformImpl_When_Constructed()
+        {
+            var windowImpl = MockWindowingPlatform.CreateWindowMock();
+
+            var windowServices = TestServices.StyledWindow.With(
+                windowingPlatform: new MockWindowingPlatform(() => windowImpl.Object));
+
+            using (UnitTestApplication.Start(windowServices))
+            {
+                var window = new TopmostWindow();
+
+                Assert.True(window.Topmost);
+                windowImpl.Verify(i => i.SetTopmost(true));
             }
         }
 
@@ -1097,6 +1116,14 @@ namespace Avalonia.Controls.UnitTests
             {
                 MeasureSizes.Add(availableSize);
                 return base.MeasureOverride(availableSize);
+            }
+        }
+
+        private class TopmostWindow : Window
+        {
+            static TopmostWindow()
+            {
+                TopmostProperty.OverrideDefaultValue<TopmostWindow>(true);
             }
         }
     }

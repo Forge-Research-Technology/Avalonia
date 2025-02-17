@@ -26,8 +26,6 @@ public partial class Dispatcher : IDispatcher
     private readonly AvaloniaSynchronizationContext?[] _priorityContexts =
         new AvaloniaSynchronizationContext?[DispatcherPriority.MaxValue - DispatcherPriority.MinValue + 1];
 
-    public event EventHandler<DispatcherUnhandledExceptionEventArgs>? UnhandledException;
-
     internal Dispatcher(IDispatcherImpl impl)
     {
         _impl = impl;
@@ -41,6 +39,9 @@ public partial class Dispatcher : IDispatcher
             MaximumInputStarvationTimeInExplicitProcessingExplicitMode;
         if (_backgroundProcessingImpl != null)
             _backgroundProcessingImpl.ReadyForBackgroundProcessing += OnReadyForExplicitBackgroundProcessing;
+
+        _unhandledExceptionEventArgs = new DispatcherUnhandledExceptionEventArgs(this);
+        _exceptionFilterEventArgs = new DispatcherUnhandledExceptionFilterEventArgs(this);
     }
     
     public static Dispatcher UIThread => s_uiThread ??= CreateUIThreadDispatcher();
@@ -63,7 +64,7 @@ public partial class Dispatcher : IDispatcher
     /// <summary>
     /// Checks that the current thread is the UI thread.
     /// </summary>
-    public bool CheckAccess() => _impl?.CurrentThreadIsLoopThread ?? true;
+    public bool CheckAccess() => _impl.CurrentThreadIsLoopThread;
 
     /// <summary>
     /// Checks that the current thread is the UI thread and throws if not.
@@ -88,17 +89,7 @@ public partial class Dispatcher : IDispatcher
     {
         DispatcherPriority.Validate(priority, nameof(priority));
         var index = priority - DispatcherPriority.MinValue;
-        return _priorityContexts[index] ??= new(priority);
+        return _priorityContexts[index] ??= new(this, priority);
     }
 
-    internal bool HandleUnhandledException(Exception exception)
-    {
-        if(UnhandledException is null)
-            return false;
-
-        var eventArgs = new DispatcherUnhandledExceptionEventArgs(exception);
-        UnhandledException.Invoke(this, eventArgs);
-
-        return eventArgs.IsHandled;
-    }
 }

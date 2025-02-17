@@ -23,14 +23,15 @@ namespace Avalonia
                             platform.SetupApplicationName();
                             platform.SetupApplicationMenuExporter();
                         });
-                })
-                .UseLifetimeOverride(type => type == typeof(ClassicDesktopStyleApplicationLifetime)
-                    ? new MacOSClassicDesktopStyleApplicationLifetime() : null);
+                });
 
             return builder;
         }
     }
 
+    /// <summary>
+    /// Represents the rendering mode for platform graphics.
+    /// </summary>
     public enum AvaloniaNativeRenderingMode
     {
         /// <summary>
@@ -44,7 +45,6 @@ namespace Avalonia
         /// <summary>
         /// Avalonia would try to use Metal with GPU rendering.
         /// </summary>
-        [Obsolete("Experimental, unstable, not for production usage")]
         Metal = 3
     }
     
@@ -66,9 +66,10 @@ namespace Avalonia
         public IReadOnlyList<AvaloniaNativeRenderingMode> RenderingMode { get; set; } = new[]
         {
             AvaloniaNativeRenderingMode.OpenGl,
+            AvaloniaNativeRenderingMode.Metal,
             AvaloniaNativeRenderingMode.Software
         };
-        
+
         /// <summary>
         /// Embeds popups to the window when set to true. The default value is false.
         /// </summary>
@@ -79,6 +80,13 @@ namespace Avalonia
         /// and make your Avalonia app run with it. The default value is null.
         /// </summary>
         public string AvaloniaNativeLibraryPath { get; set; }
+
+        /// <summary>
+        /// If you distribute your app in App Store - it should be with sandbox enabled.
+        /// This parameter enables <see cref="Avalonia.Platform.Storage.IStorageItem.SaveBookmarkAsync"/> and related APIs,
+        /// as well as wrapping all storage related calls in secure context. The default value is true.
+        /// </summary>
+        public bool AppSandboxEnabled { get; set; } = true;
     }
 
     // ReSharper disable once InconsistentNaming
@@ -102,7 +110,10 @@ namespace Avalonia
         /// Gets or sets a value indicating whether the native macOS menu bar will be enabled for the application.
         /// </summary>
         public bool DisableNativeMenus { get; set; }
-        
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the native macOS should set [NSProcessInfo setProcessName] in runtime.
+        /// </summary>
         public bool DisableSetProcessName { get; set; }
         
         /// <summary>

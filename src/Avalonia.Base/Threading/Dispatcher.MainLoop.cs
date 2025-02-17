@@ -13,7 +13,7 @@ public partial class Dispatcher
     private bool _hasShutdownFinished;
     private bool _startingShutdown;
     
-    private Stack<DispatcherFrame> _frames = new();
+    private readonly Stack<DispatcherFrame> _frames = new();
     
 
     /// <summary>
@@ -128,7 +128,7 @@ public partial class Dispatcher
     private void ShutdownImpl()
     {
         DispatcherOperation? operation = null;
-        _impl.Timer -= PromoteTimers;
+        _impl.Timer -= OnOSTimer;
         _impl.Signaled -= Signaled;
         do
         {

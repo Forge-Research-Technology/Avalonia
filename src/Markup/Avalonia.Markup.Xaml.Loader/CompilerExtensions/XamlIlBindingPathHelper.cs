@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
 using System.Reflection.Emit;
 using Avalonia.Markup.Parsers;
@@ -12,9 +11,9 @@ using XamlX.TypeSystem;
 using XamlX;
 using XamlX.Emit;
 using XamlX.IL;
-using Avalonia.Utilities;
 
 using XamlIlEmitContext = XamlX.Emit.XamlEmitContextWithLocals<XamlX.IL.IXamlILEmitter, XamlX.IL.XamlILNodeEmitResult>;
+using System.Xml.Linq;
 
 namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 {
@@ -22,7 +21,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
     {
         public static IXamlType UpdateCompiledBindingExtension(AstTransformationContext context, XamlAstConstructableObjectNode binding, Func<IXamlType> startTypeResolver, IXamlType selfType)
         {
-            IXamlType bindingResultType = null;
+            IXamlType? bindingResultType;
             if (binding.Arguments.Count > 0 && binding.Arguments[0] is ParsedBindingPathNode bindingPath)
             {
                 var transformed = TransformBindingPath(
@@ -86,14 +85,17 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
             {
                 return transformed;
             }
-
-            var lastElement =
-                transformed.Elements[transformed.Elements.Count - 1];
             
-            if (parentNode.Property?.Getter?.ReturnType == context.GetAvaloniaTypes().ICommand && lastElement is XamlIlClrMethodPathElementNode methodPathElement)
+            var lastElement = transformed.Elements.LastOrDefault();
+            
+            if (GetPropertyType(context, parentNode) == context.GetAvaloniaTypes().ICommand && lastElement is XamlIlClrMethodPathElementNode methodPathElement)
             {
-                IXamlMethod executeMethod = methodPathElement.Method;
-                IXamlMethod canExecuteMethod = executeMethod.DeclaringType.FindMethod(new FindMethodMethodSignature($"Can{executeMethod.Name}", context.Configuration.WellKnownTypes.Boolean, context.Configuration.WellKnownTypes.Object));
+                var executeMethod = methodPathElement.Method;
+                var canExecuteMethod = executeMethod.DeclaringType.FindMethod(new FindMethodMethodSignature(
+                    $"Can{executeMethod.Name}",
+                    context.Configuration.WellKnownTypes.Boolean,
+                    context.Configuration.WellKnownTypes.Object));
+
                 List<string> dependsOnProperties = new();
                 if (canExecuteMethod is not null)
                 {
@@ -101,7 +103,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     {
                         if (attr.Type == context.GetAvaloniaTypes().DependsOnAttribute)
                         {
-                            dependsOnProperties.Add((string)attr.Parameters[0]);
+                            dependsOnProperties.Add((string)attr.Parameters[0]!);
                         }
                     }
                 }
@@ -110,6 +112,29 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
             }
 
             return transformed;
+        }
+
+        private static IXamlType? GetPropertyType(AstTransformationContext context, XamlPropertyAssignmentNode node)
+        {
+            var setterType = context.GetAvaloniaTypes().Setter;
+
+            if (node.Property.DeclaringType == setterType && node.Property.Name == "Value")
+            {
+                // The property is a Setter.Value property. We need to get the type of the property that the Setter.Value property is setting.
+                var setter = context.ParentNodes()
+                    .SkipWhile(x => x != node)
+                    .OfType<XamlAstConstructableObjectNode>()
+                    .Take(1)
+                    .FirstOrDefault(x => x.Type.GetClrType() == setterType);
+                var propertyAssignment = setter?.Children.OfType<XamlPropertyAssignmentNode>()
+                    .FirstOrDefault(x => x.Property.GetClrProperty().Name == "Property");
+                var property = propertyAssignment?.Values.FirstOrDefault() as IXamlIlAvaloniaPropertyNode;
+
+                if (property?.AvaloniaPropertyType is { } propertyType)
+                    return propertyType;
+            }
+
+            return node.Property.Getter?.ReturnType;
         }
 
         private static XamlIlBindingPathNode TransformBindingPath(AstTransformationContext context, IXamlLineInfo lineInfo, Func<IXamlType> startTypeResolver, IXamlType selfType, IEnumerable<BindingExpressionGrammar.INode> bindingExpression)
@@ -129,7 +154,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     case BindingExpressionGrammar.StreamNode _:
                         {
                             IXamlType targetType = targetTypeResolver();
-                            IXamlType observableType;
+                            IXamlType? observableType;
                             if (targetType.GenericTypeDefinition?.Equals(context.Configuration.TypeSystem.FindType("System.IObservable`1")) == true)
                             {
                                 observableType = targetType;
@@ -144,10 +169,13 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                                 nodes.Add(new XamlIlStreamObservablePathElementNode(observableType.GenericArguments[0]));
                                 break;
                             }
+
                             bool foundTask = false;
+                            var taskType = context.Configuration.TypeSystem.GetType("System.Threading.Tasks.Task`1");
+
                             for (var currentType = targetType; currentType != null; currentType = currentType.BaseType)
                             {
-                                if (currentType.GenericTypeDefinition.Equals(context.Configuration.TypeSystem.GetType("System.Threading.Tasks.Task`1")))
+                                if (currentType.GenericTypeDefinition?.Equals(taskType) == true)
                                 {
                                     foundTask = true;
                                     nodes.Add(new XamlIlStreamTaskPathElementNode(currentType.GenericArguments[0]));
@@ -158,7 +186,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                             {
                                 break;
                             }
-                            throw new XamlX.XamlParseException($"Compiled bindings do not support stream bindings for objects of type {targetType.FullName}.", lineInfo);
+                            throw new XamlX.XamlTransformException($"Compiled bindings do not support stream bindings for objects of type {targetType.FullName}.", lineInfo);
                         }
                     case BindingExpressionGrammar.PropertyNameNode propName:
                         {
@@ -182,7 +210,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                             }
                             else
                             {
-                                throw new XamlX.XamlParseException($"Unable to resolve property or method of name '{propName.PropertyName}' on type '{targetType}'.", lineInfo);
+                                throw new XamlX.XamlTransformException($"Unable to resolve property or method of name '{propName.PropertyName}' on type '{targetType}'.", lineInfo);
                             }
                             break;
                         }
@@ -195,19 +223,19 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                                 break;
                             }
 
-                            IXamlProperty property = null;
+                            IXamlProperty? property = null;
                             foreach (var currentType in TraverseTypeHierarchy(targetType))
                             {
                                 var defaultMemberAttribute = currentType.CustomAttributes.FirstOrDefault(x => x.Type.Namespace == "System.Reflection" && x.Type.Name == "DefaultMemberAttribute");
                                 if (defaultMemberAttribute != null)
                                 {
-                                    property = currentType.GetAllProperties().FirstOrDefault(x => x.Name == (string)defaultMemberAttribute.Parameters[0]);
+                                    property = currentType.GetAllProperties().FirstOrDefault(x => x.Name == (string)defaultMemberAttribute.Parameters[0]!);
                                     break;
                                 }
                             }
                             if (property is null)
                             {
-                                throw new XamlX.XamlParseException($"The type '${targetType}' does not have an indexer.", lineInfo);
+                                throw new XamlX.XamlTransformException($"The type '${targetType}' does not have an indexer.", lineInfo);
                             }
 
                             IEnumerable<IXamlType> parameters = property.IndexerParameters;
@@ -218,8 +246,8 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                             {
                                 var textNode = new XamlAstTextNode(lineInfo, indexer.Arguments[currentParamIndex], type: context.Configuration.WellKnownTypes.String);
                                 if (!XamlTransformHelpers.TryGetCorrectlyTypedValue(context, textNode,
-                                        param, out var converted))
-                                    throw new XamlX.XamlParseException(
+                                        property.CustomAttributes, param, out var converted))
+                                    throw new XamlX.XamlTransformException(
                                         $"Unable to convert indexer parameter value of '{indexer.Arguments[currentParamIndex]}' to {param.GetFqn()}",
                                         textNode);
 
@@ -234,8 +262,17 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                         }
                     case BindingExpressionGrammar.AttachedPropertyNameNode attachedProp:
                         var avaloniaPropertyFieldName = attachedProp.PropertyName + "Property";
-                        var avaloniaPropertyField = GetType(attachedProp.Namespace, attachedProp.TypeName).GetAllFields().FirstOrDefault(f =>
+                        var propertyOwnerType = GetType(attachedProp.Namespace, attachedProp.TypeName);
+                        var avaloniaPropertyField = propertyOwnerType.GetAllFields().FirstOrDefault(f =>
                             f.IsStatic && f.IsPublic && f.Name == avaloniaPropertyFieldName);
+
+                        if (avaloniaPropertyField is null)
+                        {
+                            throw new XamlTransformException(
+                                $"Unable to find {avaloniaPropertyFieldName} field on type {propertyOwnerType.GetFullName()}",
+                                lineInfo);
+                        }
+
                         nodes.Add(new XamlIlAvaloniaPropertyPropertyPathElementNode(avaloniaPropertyField,
                             XamlIlAvaloniaPropertyHelper.GetAvaloniaPropertyType(avaloniaPropertyField, context.GetAvaloniaTypes(), lineInfo)));
                         break;
@@ -246,12 +283,18 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                         nodes.Add(new FindVisualAncestorPathElementNode(visualAncestor.Type, visualAncestor.Level));
                         break;
                     case TemplatedParentBindingExpressionNode templatedParent:
-                        var templatedParentField = context.GetAvaloniaTypes().StyledElement.GetAllFields()
-                            .FirstOrDefault(f => f.IsStatic && f.IsPublic && f.Name == "TemplatedParentProperty");
-                        nodes.Add(new SelfPathElementNode(selfType));
-                        nodes.Add(new XamlIlAvaloniaPropertyPropertyPathElementNode(
-                            templatedParentField,
-                            templatedParent.Type));
+                        var templatedParentType = context
+                            .ParentNodes()
+                            .OfType<AvaloniaXamlIlTargetTypeMetadataNode>()
+                            .Where(x => x.ScopeType == AvaloniaXamlIlTargetTypeMetadataNode.ScopeTypes.ControlTemplate)
+                            .FirstOrDefault()?.TargetType;
+
+                        if (templatedParentType is null)
+                        {
+                            throw new XamlTransformException("A binding with a TemplatedParent RelativeSource has to be in a ControlTemplate.", lineInfo);
+                        }
+
+                        nodes.Add(new TemplatedParentPathElementNode(templatedParentType.GetClrType()));
                         break;
                     case BindingExpressionGrammar.AncestorNode ancestor:
                         if (ancestor.Namespace is null && ancestor.TypeName is null)
@@ -267,7 +310,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
                             if (ancestorType is null)
                             {
-                                throw new XamlX.XamlParseException("Unable to resolve implicit ancestor type based on XAML tree.", lineInfo);
+                                throw new XamlX.XamlTransformException("Unable to resolve implicit ancestor type based on XAML tree.", lineInfo);
                             }
 
                             nodes.Add(new FindAncestorPathElementNode(ancestorType, ancestor.Level));
@@ -278,7 +321,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                         }
                         break;
                     case BindingExpressionGrammar.NameNode elementName:
-                        IXamlType elementType = null;
+                        IXamlType? elementType = null;
                         foreach (var deferredContent in context.ParentNodes().OfType<NestedScopeMetadataNode>())
                         {
                             elementType = ScopeRegistrationFinder.GetTargetType(deferredContent, elementName.Name);
@@ -294,19 +337,16 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
                         if (elementType is null)
                         {
-                            throw new XamlX.XamlParseException($"Unable to find element '{elementName.Name}' in the current namescope. Unable to use a compiled binding with a name binding if the name cannot be found at compile time.", lineInfo);
+                            throw new XamlX.XamlTransformException($"Unable to find element '{elementName.Name}' in the current namescope. Unable to use a compiled binding with a name binding if the name cannot be found at compile time.", lineInfo);
                         }
                         nodes.Add(new ElementNamePathElementNode(elementName.Name, elementType));
-                        break;
-                    case RawSourceBindingExpressionNode rawSource:
-                        nodes.Add(new RawSourcePathElementNode(rawSource.RawSource));
                         break;
                     case BindingExpressionGrammar.TypeCastNode typeCastNode:
                         var castType = GetType(typeCastNode.Namespace, typeCastNode.TypeName);
 
                         if (castType is null)
                         {
-                            throw new XamlX.XamlParseException($"Unable to resolve cast to type {typeCastNode.Namespace}:{typeCastNode.TypeName} based on XAML tree.", lineInfo);
+                            throw new XamlX.XamlTransformException($"Unable to resolve cast to type {typeCastNode.Namespace}:{typeCastNode.TypeName} based on XAML tree.", lineInfo);
                         }
 
                         nodes.Add(new TypeCastPathElementNode(castType));
@@ -316,7 +356,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             return new XamlIlBindingPathNode(lineInfo, context.GetAvaloniaTypes().CompiledBindingPath, transformNodes, nodes);
 
-            IXamlType GetType(string ns, string name)
+            IXamlType GetType(string? ns, string? name)
             {
                 return TypeReferenceResolver.ResolveType(context, $"{ns}:{name}", false,
                     lineInfo, true).GetClrType();
@@ -379,9 +419,9 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             string Name { get; }
 
-            IXamlType TargetType { get; set; }
+            IXamlType? TargetType { get; set; }
 
-            public static IXamlType GetTargetType(IXamlAstNode namescopeRoot, string name)
+            public static IXamlType? GetTargetType(IXamlAstNode namescopeRoot, string name)
             {
                 // If we start from the nested scope - skip it.
                 if (namescopeRoot is NestedScopeMetadataNode scope)
@@ -444,7 +484,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "Not"));
+                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "Not"));
             }
         }
 
@@ -459,7 +499,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "StreamObservable").MakeGenericMethod(new[] { Type }));
+                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "StreamObservable").MakeGenericMethod(new[] { Type }));
             }
         }
 
@@ -474,7 +514,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "StreamTask").MakeGenericMethod(new[] { Type }));
+                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "StreamTask").MakeGenericMethod(new[] { Type }));
             }
         }
 
@@ -489,7 +529,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "Self"));
+                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "Self"));
             }
         }
 
@@ -509,7 +549,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
             {
                 codeGen.Ldtype(Type)
                     .Ldc_I4(_level)
-                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "Ancestor"));
+                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "Ancestor"));
             }
         }
 
@@ -529,7 +569,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
             {
                 codeGen.Ldtype(Type)
                     .Ldc_I4(_level)
-                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "VisualAncestor"));
+                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "VisualAncestor"));
             }
         }
 
@@ -554,7 +594,23 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     .Ldloc(context.ContextLocal)
                     .Ldfld(scopeField)
                     .Ldstr(_name)
-                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "ElementName"));
+                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "ElementName"));
+            }
+        }
+
+        class TemplatedParentPathElementNode : IXamlIlBindingPathElementNode
+        {
+            public TemplatedParentPathElementNode(IXamlType elementType)
+            {
+                Type = elementType;
+            }
+
+            public IXamlType Type { get; }
+
+            public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
+            {
+                codeGen
+                    .EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "TemplatedParent"));
             }
         }
 
@@ -574,7 +630,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 context.Configuration.GetExtra<XamlIlPropertyInfoAccessorFactoryEmitter>()
                     .EmitLoadAvaloniaPropertyAccessorFactory(context, codeGen);
                 codeGen.EmitCall(context.GetAvaloniaTypes()
-                    .CompiledBindingPathBuilder.FindMethod(m => m.Name == "Property"));
+                    .CompiledBindingPathBuilder.GetMethod(m => m.Name == "Property"));
             }
 
             public IXamlType Type { get; }
@@ -599,10 +655,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
                 codeGen
                     .EmitCall(context.GetAvaloniaTypes()
-                        .CompiledBindingPathBuilder.FindMethod(m => m.Name == "Property"));
+                        .CompiledBindingPathBuilder.GetMethod(m => m.Name == "Property"));
             }
 
-            public IXamlType Type => _property.Getter?.ReturnType ?? _property.Setter?.Parameters[0];
+            public IXamlType Type => _property.PropertyType;
         }
 
         class XamlIlClrMethodPathElementNode : IXamlIlBindingPathElementNode
@@ -619,7 +675,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                IXamlTypeBuilder<IXamlILEmitter> newDelegateTypeBuilder = null;
+                IXamlTypeBuilder<IXamlILEmitter>? newDelegateTypeBuilder = null;
                 IXamlType specificDelegateType;
                 if (Method.ReturnType == context.Configuration.WellKnownTypes.Void && Method.Parameters.Count == 0)
                 {
@@ -645,14 +701,18 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 {
                     // In this case, we need to emit our own delegate type.
                     string delegateTypeName = context.Configuration.IdentifierGenerator.GenerateIdentifierPart();
-                    specificDelegateType = newDelegateTypeBuilder = context.DefineDelegateSubType(delegateTypeName, Method.ReturnType, Method.Parameters);
+                    specificDelegateType = newDelegateTypeBuilder = context.DeclaringType.DefineDelegateSubType(
+                        delegateTypeName,
+                        XamlVisibility.Private,
+                        Method.ReturnType,
+                        Method.Parameters);
                 }
 
                 codeGen
                     .Ldtoken(Method)
                     .Ldtoken(specificDelegateType)
                     .EmitCall(context.GetAvaloniaTypes()
-                        .CompiledBindingPathBuilder.FindMethod(m => m.Name == "Method"));
+                        .CompiledBindingPathBuilder.GetMethod(m => m.Name == "Method"));
 
                 newDelegateTypeBuilder?.CreateType();
             }
@@ -661,17 +721,20 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
         class XamlIlClrMethodAsCommandPathElementNode : IXamlIlBindingPathElementNode
         {
             private readonly IXamlMethod _executeMethod;
-            private readonly IXamlMethod _canExecuteMethod;
+            private readonly IXamlMethod? _canExecuteMethod;
             private readonly IReadOnlyList<string> _dependsOnProperties;
 
-            public XamlIlClrMethodAsCommandPathElementNode(IXamlType iCommandType, IXamlMethod executeMethod, IXamlMethod canExecuteMethod, IReadOnlyList<string> dependsOnProperties)
+            public XamlIlClrMethodAsCommandPathElementNode(
+                IXamlType iCommandType,
+                IXamlMethod executeMethod,
+                IXamlMethod? canExecuteMethod,
+                IReadOnlyList<string> dependsOnProperties)
             {
                 Type = iCommandType;
                 _executeMethod = executeMethod;
                 _canExecuteMethod = canExecuteMethod;
                 _dependsOnProperties = dependsOnProperties;
             }
-
 
             public IXamlType Type { get; }
 
@@ -726,7 +789,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
                 codeGen
                     .EmitCall(context.GetAvaloniaTypes()
-                        .CompiledBindingPathBuilder.FindMethod(m => m.Name == "Command"));
+                        .CompiledBindingPathBuilder.GetMethod(m => m.Name == "Command"));
             }
         }
 
@@ -766,10 +829,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 }
 
                 codeGen.EmitCall(context.GetAvaloniaTypes()
-                    .CompiledBindingPathBuilder.FindMethod(m => m.Name == "Property"));
+                    .CompiledBindingPathBuilder.GetMethod(m => m.Name == "Property"));
             }
 
-            public IXamlType Type => _property.Getter?.ReturnType ?? _property.Setter?.Parameters[0];
+            public IXamlType Type => _property.PropertyType;
         }
 
         class XamlIlArrayIndexerPathElementNode : IXamlIlBindingPathElementNode
@@ -785,7 +848,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 {
                     if (!int.TryParse(item, out var index))
                     {
-                        throw new XamlX.XamlParseException($"Unable to convert '{item}' to an integer.", lineInfo.Line, lineInfo.Position);
+                        throw new XamlX.XamlTransformException($"Unable to convert '{item}' to an integer.", lineInfo);
                     }
                     _values.Add(index);
                 }
@@ -809,32 +872,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 codeGen.Ldloc(indices)
                     .Ldtype(Type)
                     .EmitCall(context.GetAvaloniaTypes()
-                    .CompiledBindingPathBuilder.FindMethod(m => m.Name == "ArrayElement"));
+                    .CompiledBindingPathBuilder.GetMethod(m => m.Name == "ArrayElement"));
             }
 
-            public IXamlType Type => _arrayType.ArrayElementType;
-        }
-
-        class RawSourcePathElementNode : XamlAstNode, IXamlIlBindingPathElementNode
-        {
-            private readonly IXamlAstValueNode _rawSource;
-
-            public RawSourcePathElementNode(IXamlAstValueNode rawSource)
-                : base(rawSource)
-            {
-                _rawSource = rawSource;
-
-            }
-
-            public IXamlType Type => _rawSource.Type.GetClrType();
-
-            public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
-            {
-                context.Emit(_rawSource, codeGen, Type);
-                codeGen
-                    .EmitCall(context.GetAvaloniaTypes()
-                    .CompiledBindingPathBuilder.FindMethod(m => m.Name == "SetRawSource"));
-            }
+            public IXamlType Type => _arrayType.ArrayElementType!;
         }
 
         class TypeCastPathElementNode : IXamlIlBindingPathElementNode
@@ -848,7 +889,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public void Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
-                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.FindMethod(m => m.Name == "TypeCast").MakeGenericMethod(new[] { Type }));
+                codeGen.EmitCall(context.GetAvaloniaTypes().CompiledBindingPathBuilder.GetMethod(m => m.Name == "TypeCast").MakeGenericMethod(new[] { Type }));
             }
         }
 
@@ -866,10 +907,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 Elements = elements;
             }
 
-            public IXamlType BindingResultType
-                => _transformElements.Count > 0
-                    ? _transformElements[0].Type
-                    : Elements[Elements.Count - 1].Type;
+            public IXamlType BindingResultType =>
+                _transformElements.FirstOrDefault()?.Type
+                    ?? Elements.LastOrDefault()?.Type
+                    ?? XamlPseudoType.Unknown;
 
             public IXamlAstTypeReference Type { get; }
 
@@ -877,8 +918,14 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
             public XamlILNodeEmitResult Emit(XamlIlEmitContext context, IXamlILEmitter codeGen)
             {
+                var intType = context.Configuration.TypeSystem.GetType("System.Int32");
                 var types = context.GetAvaloniaTypes();
-                codeGen.Newobj(types.CompiledBindingPathBuilder.FindConstructor());
+
+                // We're calling the CompiledBindingPathBuilder(int apiVersion) with an apiVersion 
+                // of 1 to indicate that we don't want TemplatedParent compatibility hacks enabled.
+                codeGen
+                    .Ldc_I4(1)
+                    .Newobj(types.CompiledBindingPathBuilder.GetConstructor(new() { intType }));
 
                 foreach (var transform in _transformElements)
                 {
@@ -890,7 +937,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     element.Emit(context, codeGen);
                 }
 
-                codeGen.EmitCall(types.CompiledBindingPathBuilder.FindMethod(m => m.Name == "Build"));
+                codeGen.EmitCall(types.CompiledBindingPathBuilder.GetMethod(m => m.Name == "Build"));
                 return XamlILNodeEmitResult.Type(0, types.CompiledBindingPath);
             }
 

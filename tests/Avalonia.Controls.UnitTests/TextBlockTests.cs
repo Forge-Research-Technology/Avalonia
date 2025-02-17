@@ -1,14 +1,12 @@
-using System;
+﻿using System;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
-using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Metadata;
-using Avalonia.Rendering;
 using Avalonia.UnitTests;
-using Moq;
 using Xunit;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Avalonia.Controls.UnitTests
 {
@@ -28,6 +26,102 @@ namespace Avalonia.Controls.UnitTests
             var textBlock = new TextBlock();
 
             Assert.Equal(null, textBlock.Text);
+        }
+
+        [Fact]
+        public void Calling_Measure_Should_Update_TextLayout()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var textBlock = new TestTextBlock { Text = "Hello World" };
+
+                var constraint = textBlock.Constraint;
+                Assert.True(double.IsNaN(constraint.Width));
+                Assert.True(double.IsNaN(constraint.Height));
+
+                textBlock.Measure(new Size(100, 100));
+
+                var textLayout = textBlock.TextLayout;
+
+                textBlock.Measure(new Size(50, 100));
+
+                Assert.NotEqual(textLayout, textBlock.TextLayout);
+            }
+        }
+
+        [Fact]
+        public void Should_Measure_MinTextWith()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var textBlock = new TextBlock
+                {
+                    Text = "Hello&#10;שלום&#10;Really really really really long line",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.DetectFromContent,
+                    TextWrapping = TextWrapping.Wrap
+                };
+
+                textBlock.Measure(new Size(1920, 1080));
+
+                var textLayout = textBlock.TextLayout;
+
+                var constraint = LayoutHelper.RoundLayoutSizeUp(new Size(textLayout.MinTextWidth, textLayout.Height), 1, 1);
+
+                Assert.Equal(textBlock.DesiredSize, constraint);
+            }
+        }
+
+        [Fact]
+        public void Calling_Arrange_With_Different_Size_Should_Update_Constraint_And_TextLayout()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var textBlock = new TestTextBlock { Text = "Hello World" };
+
+                textBlock.Measure(Size.Infinity);
+
+                var textLayout = textBlock.TextLayout;
+
+                var constraint = LayoutHelper.RoundLayoutSizeUp(new Size(textLayout.WidthIncludingTrailingWhitespace, textLayout.Height), 1, 1);
+
+                textBlock.Arrange(new Rect(constraint));
+
+                //TextLayout is recreated after arrange
+                textLayout = textBlock.TextLayout;
+
+                Assert.Equal(constraint, textBlock.Constraint);
+
+                textBlock.Measure(constraint);
+
+                Assert.Equal(textLayout, textBlock.TextLayout);
+
+                constraint += new Size(50, 0);
+
+                textBlock.Arrange(new Rect(constraint));
+
+                Assert.Equal(constraint, textBlock.Constraint);
+
+                //TextLayout is recreated after arrange
+                Assert.NotEqual(textLayout, textBlock.TextLayout);
+            }
+        }
+
+        [Fact]
+        public void Calling_Measure_With_Infinite_Space_Should_Set_DesiredSize()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var textBlock = new TestTextBlock { Text = "Hello World" };
+
+                textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+                var textLayout = textBlock.TextLayout;
+
+                var constraint = LayoutHelper.RoundLayoutSizeUp(new Size(textLayout.WidthIncludingTrailingWhitespace, textLayout.Height), 1, 1);
+
+                Assert.Equal(constraint, textBlock.DesiredSize);
+            }
         }
 
         [Fact]
@@ -185,6 +279,23 @@ namespace Avalonia.Controls.UnitTests
         }
 
         [Fact]
+        public void Changing_InlineHost_Should_Propagate_To_Nested_Inlines()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var target = new TextBlock();
+
+                var span = new Span { Inlines = new InlineCollection { new Run { Text = "World" } } };
+
+                var inlines = new InlineCollection{ new Run{Text = "Hello "}, span };
+
+                target.Inlines = inlines;
+
+                Assert.Equal(target, span.InlineHost);
+            }
+        }
+
+        [Fact]
         public void Changing_Inlines_Should_Reset_VisualChildren()
         {
             using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
@@ -327,6 +438,29 @@ namespace Avalonia.Controls.UnitTests
                 int count1 = textblock.TextLayout.TextLines[0].TextRuns.Count;
                 Assert.NotEqual(count, count1);
             }
+        }
+
+        [Fact]
+        public void TextBlock_With_Infinite_Size_Should_Be_Remeasured_After_TextLayout_Created()
+        {
+            using var app = UnitTestApplication.Start(TestServices.MockPlatformRenderInterface);
+
+            var target = new TextBlock { Text = "" };
+            var layout = target.TextLayout;
+
+            Assert.Equal(0.0, layout.MaxWidth);
+            Assert.Equal(0.0, layout.MaxHeight);
+
+            target.Text = "foo";
+            target.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+            Assert.True(target.DesiredSize.Width > 0);
+            Assert.True(target.DesiredSize.Height > 0);
+        }
+
+        private class TestTextBlock : TextBlock
+        {
+            public Size Constraint => _constraint;
         }
     }
 }

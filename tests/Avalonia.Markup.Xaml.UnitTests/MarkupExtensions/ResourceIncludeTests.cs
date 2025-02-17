@@ -1,8 +1,9 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Metadata;
 using Avalonia.Styling;
 using Avalonia.UnitTests;
 using Xunit;
@@ -40,9 +41,9 @@ namespace Avalonia.Markup.Xaml.UnitTests.MarkupExtensions
             {
                 var compiled = AvaloniaRuntimeXamlLoader.LoadGroup(documents);
                 var userControl = Assert.IsType<UserControl>(compiled[1]);
-                var border = userControl.FindControl<Border>("border");
+                var border = userControl.GetControl<Border>("border");
 
-                var brush = (ISolidColorBrush)border.Background;
+                var brush = (ISolidColorBrush)border.Background!;
                 Assert.Equal(0xff506070, brush.Color.ToUInt32());
             }
         }
@@ -126,21 +127,13 @@ namespace Avalonia.Markup.Xaml.UnitTests.MarkupExtensions
     }
     
     // See https://github.com/AvaloniaUI/Avalonia/issues/11172
-    public class LocaleCollection : IResourceProvider
+    public class LocaleCollection : ResourceProvider
     {
         private readonly Dictionary<object, IResourceProvider> _langs = new();
+        
+        public override bool HasResources => true;
 
-        public IResourceHost Owner { get; private set; }
-
-        public bool HasResources => true;
-
-        public event EventHandler OwnerChanged;
-
-        public void AddOwner(IResourceHost owner) => Owner = owner;
-
-        public void RemoveOwner(IResourceHost owner) => Owner = null;
-
-        public bool TryGetResource(object key, ThemeVariant theme, out object? value)
+        public override bool TryGetResource(object key, ThemeVariant? theme, out object? value)
         {
             if (_langs.TryGetValue("English", out var res))
             {

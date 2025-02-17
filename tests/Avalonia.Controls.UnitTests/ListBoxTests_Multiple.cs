@@ -21,7 +21,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Shift_Selecting_From_No_Selection_Selects_From_Start()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -47,7 +47,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Ctrl_Selecting_Raises_SelectionChanged_Events()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -105,7 +105,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Ctrl_Selecting_SelectedItem_With_Multiple_Selection_Active_Sets_SelectedItem_To_Next_Selection()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -139,7 +139,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Ctrl_Selecting_Non_SelectedItem_With_Multiple_Selection_Active_Leaves_SelectedItem_The_Same()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -168,9 +168,39 @@ namespace Avalonia.Controls.UnitTests
         }
 
         [Fact]
+        public void ToggleModifier_And_Range_Should_Select_Second_Range()
+        {
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
+            {
+                var target = new ListBox
+                {
+                    Template = new FuncControlTemplate(CreateListBoxTemplate),
+                    ItemsSource = new[] { "Foo", "Bar", "Baz", "Gap", "Boo", "Far", "Faz" },
+                    SelectionMode = SelectionMode.Multiple,
+                    Width = 100,
+                    Height = 100,
+                };
+
+                var root = new TestRoot(target);
+                root.LayoutManager.ExecuteInitialLayoutPass();
+
+                AvaloniaLocator.CurrentMutable.Bind<PlatformHotkeyConfiguration>().ToConstant(new PlatformHotkeyConfiguration());
+                // Select first range
+                _helper.Click(target.Presenter.Panel.Children[0]);
+                _helper.Click(target.Presenter.Panel.Children[2], modifiers: KeyModifiers.Shift);
+
+                // Select second range
+                _helper.Click(target.Presenter.Panel.Children[4], modifiers: KeyModifiers.Control);
+                _helper.Click(target.Presenter.Panel.Children[6], modifiers: KeyModifiers.Control | KeyModifiers.Shift);
+
+                Assert.Equal(new[] { "Foo", "Bar", "Baz", "Boo", "Far", "Faz" }, target.SelectedItems);
+            }
+        }
+
+        [Fact]
         public void Should_Ctrl_Select_Correct_Item_When_Duplicate_Items_Are_Present()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -198,7 +228,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Should_Shift_Select_Correct_Item_When_Duplicates_Are_Present()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -226,7 +256,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Can_Shift_Select_All_Items_When_Duplicates_Are_Present()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -254,7 +284,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Shift_Selecting_Raises_SelectionChanged_Events()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -306,7 +336,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Duplicate_Items_Are_Added_To_SelectedItems_In_Order()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -342,7 +372,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Left_Click_On_SelectedItem_Should_Clear_Existing_Selection()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -372,7 +402,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Right_Click_On_SelectedItem_Should_Not_Clear_Existing_Selection()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -400,7 +430,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Right_Click_On_UnselectedItem_Should_Clear_Existing_Selection()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -430,7 +460,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Shift_Right_Click_Should_Not_Select_Multiple()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {
@@ -457,7 +487,7 @@ namespace Avalonia.Controls.UnitTests
         [Fact]
         public void Ctrl_Right_Click_Should_Not_Select_Multiple()
         {
-            using (UnitTestApplication.Start())
+            using (UnitTestApplication.Start(TestServices.MockPlatformRenderInterface))
             {
                 var target = new ListBox
                 {

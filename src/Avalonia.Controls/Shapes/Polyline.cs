@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Avalonia.Media;
+using Avalonia.Data;
 
 namespace Avalonia.Controls.Shapes
 {
-    public class Polyline: Shape
+    public class Polyline : Shape
     {
         public static readonly StyledProperty<IList<Point>> PointsProperty =
             AvaloniaProperty.Register<Polyline, IList<Point>>("Points");
@@ -16,7 +18,7 @@ namespace Avalonia.Controls.Shapes
 
         public Polyline()
         {
-            Points = new Points();
+            SetValue(PointsProperty, new Points(), BindingPriority.Template);
         }
 
         public IList<Point> Points
@@ -27,7 +29,7 @@ namespace Avalonia.Controls.Shapes
 
         protected override Geometry CreateDefiningGeometry()
         {
-            return new PolylineGeometry(Points, false);
+            return new PolylineGeometry { Points = Points, IsFilled = false };
         }
     }
 }

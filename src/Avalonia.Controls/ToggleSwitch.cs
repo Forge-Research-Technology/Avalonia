@@ -11,7 +11,7 @@ namespace Avalonia.Controls
     /// <summary>
     /// A Toggle Switch control.
     /// </summary>
-    [TemplatePart("PART_MovingKnobs",         typeof(Panel))]
+    [TemplatePart("PART_MovingKnobs",         typeof(Panel), IsRequired = true)]
     [TemplatePart("PART_OffContentPresenter", typeof(ContentPresenter))]
     [TemplatePart("PART_OnContentPresenter",  typeof(ContentPresenter))]
     [TemplatePart("PART_SwitchKnob",          typeof(Panel))]
@@ -255,14 +255,14 @@ namespace Avalonia.Controls
         {
             if (_knobsPanelPressed)
             {
-                if(_knobsPanel != null)
-                {
-                    _knobsPanel.Transitions = null;
-                }
                 var difference = e.GetPosition(_switchKnob) - _switchStartPoint;
 
                 if ((!_isDragging) && (System.Math.Abs(difference.X) > 3))
                 {
+                    if (_knobsPanel != null)
+                    {
+                        _knobsPanel.Transitions = null;
+                    }
                     _isDragging = true;
                     PseudoClasses.Set(":dragging", true);
                 }

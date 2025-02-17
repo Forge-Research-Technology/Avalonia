@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Avalonia.Reactive;
 using Avalonia.Controls.Metadata;
@@ -25,42 +25,7 @@ namespace Avalonia.Controls.Notifications
         /// </summary>
         public NotificationCard()
         {
-            this.GetObservable(IsClosedProperty)
-                .Subscribe(x =>
-                {
-                    if (!IsClosing && !IsClosed)
-                    {
-                        return;
-                    }
-
-                    RaiseEvent(new RoutedEventArgs(NotificationClosedEvent));
-                });
-
-            this.GetObservable(ContentProperty)
-                .Subscribe(x =>
-                {
-                    if (x is INotification notification)
-                    {
-                        switch (notification.Type)
-                        {
-                            case NotificationType.Error:
-                                PseudoClasses.Add(":error");
-                                break;
-
-                            case NotificationType.Information:
-                                PseudoClasses.Add(":information");
-                                break;
-
-                            case NotificationType.Success:
-                                PseudoClasses.Add(":success");
-                                break;
-
-                            case NotificationType.Warning:
-                                PseudoClasses.Add(":warning");
-                                break;
-                        }
-                    }
-                });
+            UpdateNotificationType();
         }
 
         /// <summary>
@@ -177,6 +142,53 @@ namespace Avalonia.Controls.Notifications
             }
 
             IsClosing = true;
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs e)
+        {
+            base.OnPropertyChanged(e);
+
+            if (e.Property == ContentProperty && e.NewValue is INotification notification)
+            {
+                SetValue(NotificationTypeProperty, notification.Type);
+            }
+
+            if (e.Property == NotificationTypeProperty)
+            {
+                UpdateNotificationType();
+            }
+
+            if (e.Property == IsClosedProperty)
+            {
+                if (!IsClosing && !IsClosed)
+                {
+                    return;
+                }
+
+                RaiseEvent(new RoutedEventArgs(NotificationClosedEvent));
+            }
+        }
+
+        private void UpdateNotificationType()
+        {
+            switch (NotificationType)
+            {
+                case NotificationType.Error:
+                    PseudoClasses.Add(":error");
+                    break;
+
+                case NotificationType.Information:
+                    PseudoClasses.Add(":information");
+                    break;
+
+                case NotificationType.Success:
+                    PseudoClasses.Add(":success");
+                    break;
+
+                case NotificationType.Warning:
+                    PseudoClasses.Add(":warning");
+                    break;
+            }
         }
     }
 }

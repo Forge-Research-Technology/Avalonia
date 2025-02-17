@@ -32,7 +32,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 context.Configuration.WellKnownTypes.Void,
                 new[] { context.Configuration.WellKnownTypes.Object, context.Configuration.WellKnownTypes.Object },
                 methodName,
-                true,
+                XamlVisibility.Public,
                 true,
                 false);
             var gen = trampoline.Generator;
@@ -54,10 +54,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     var convertedValue = gen.DefineLocal(context.Configuration.WellKnownTypes.Object);
                     gen.Ldtype(executeMethod.Parameters[0])
                         .Ldarg(1)
-                        .EmitCall(context.Configuration.WellKnownTypes.CultureInfo.FindMethod(m => m.Name == "get_CurrentCulture"))
+                        .EmitCall(context.Configuration.WellKnownTypes.CultureInfo.GetMethod(m => m.Name == "get_CurrentCulture"))
                         .Ldloca(convertedValue)
                         .EmitCall(
-                            context.GetAvaloniaTypes().TypeUtilities.FindMethod(m => m.Name == "TryConvert"),
+                            context.GetAvaloniaTypes().TypeUtilities.GetMethod(m => m.Name == "TryConvert"),
                             swallowResult: true)
                         .Ldloc(convertedValue)
                         .Unbox_Any(executeMethod.Parameters[0]);
@@ -88,7 +88,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 context.Configuration.WellKnownTypes.Boolean,
                 new[] { context.Configuration.WellKnownTypes.Object, context.Configuration.WellKnownTypes.Object },
                 methodName,
-                true,
+                XamlVisibility.Public,
                 true,
                 false);
             if (canExecuteMethod.DeclaringType.IsValueType)

@@ -44,6 +44,12 @@ jobs:
     inputs:
       version: 7.0.101
 
+  - task: UseDotNet@2
+    displayName: 'Use .NET 8.0 SDK'
+    inputs:
+      packageType: sdk
+      useGlobalJson: true
+
   - task: CmdLine@2
     displayName: 'Install Workloads'
     inputs:
@@ -123,15 +129,16 @@ jobs:
       version: 6.0.404
 
   - task: UseDotNet@2
-    displayName: 'Use .NET Core SDK 7.0.101'
+    displayName: 'Use .NET 8.0 SDK'
     inputs:
-      version: 7.0.101
+      packageType: sdk
+      useGlobalJson: true
 
   - task: CmdLine@2
     displayName: 'Install Workloads'
     inputs:
       script: |
-       dotnet workload install android ios wasm-tools wasm-experimental
+       dotnet workload install android ios wasm-tools wasm-experimental wasm-tools-net6
 
   - task: CmdLine@2
     displayName: 'Install Nuke'

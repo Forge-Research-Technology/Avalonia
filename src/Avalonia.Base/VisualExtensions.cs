@@ -1,5 +1,4 @@
 using System;
-using Avalonia.Rendering.Composition;
 using Avalonia.VisualTree;
 
 namespace Avalonia
@@ -125,16 +124,7 @@ namespace Avalonia
                     result *= Matrix.CreateTranslation(topLeft);
                 }
 
-
-                if(v.CompositionVisual?.AdornedVisual is not null 
-                    && v.CompositionVisual.AdornedVisual is CompositionDrawListVisual compositionVisual)
-                {
-                    v = compositionVisual.Visual;
-                }
-                else
-                {
-                    v = v.VisualParent;
-                }
+                v = v.VisualParent;
 
                 if (v == null)
                 {

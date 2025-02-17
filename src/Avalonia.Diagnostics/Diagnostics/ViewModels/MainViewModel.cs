@@ -2,12 +2,13 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
-using Avalonia.Diagnostics.Models;
 using Avalonia.Input;
 using Avalonia.Metadata;
 using Avalonia.Threading;
 using Avalonia.Reactive;
 using Avalonia.Rendering;
+using System.Collections.Generic;
+using Avalonia.Media;
 
 namespace Avalonia.Diagnostics.ViewModels
 {
@@ -17,6 +18,7 @@ namespace Avalonia.Diagnostics.ViewModels
         private readonly TreePageViewModel _logicalTree;
         private readonly TreePageViewModel _visualTree;
         private readonly EventsPageViewModel _events;
+        private readonly HotKeyPageViewModel _hotKeys;
         private readonly IDisposable _pointerOverSubscription;
         private ViewModelBase? _content;
         private int _selectedTab;
@@ -27,15 +29,19 @@ namespace Avalonia.Diagnostics.ViewModels
         private string? _pointerOverElementName;
         private IInputRoot? _pointerOverRoot;
         private IScreenshotHandler? _screenshotHandler;
-        private bool _showPropertyType;        
+        private bool _showPropertyType;
         private bool _showImplementedInterfaces;
-        
+        private readonly HashSet<string> _pinnedProperties = new();
+        private IBrush? _FocusHighlighter;
+        private IDisposable? _currentFocusHighlightAdorner = default;
+
         public MainViewModel(AvaloniaObject root)
         {
             _root = root;
-            _logicalTree = new TreePageViewModel(this, LogicalTreeNode.Create(root));
-            _visualTree = new TreePageViewModel(this, VisualTreeNode.Create(root));
+            _logicalTree = new TreePageViewModel(this, LogicalTreeNode.Create(root), _pinnedProperties);
+            _visualTree = new TreePageViewModel(this, VisualTreeNode.Create(root), _pinnedProperties);
             _events = new EventsPageViewModel(this);
+            _hotKeys = new HotKeyPageViewModel();
 
             UpdateFocusedControl();
 
@@ -61,7 +67,6 @@ namespace Avalonia.Diagnostics.ViewModels
                             }
                         });
             }
-            Console = new ConsoleViewModel(UpdateConsoleContext);
         }
 
         public bool FreezePopups
@@ -146,8 +151,6 @@ namespace Avalonia.Diagnostics.ViewModels
         public void ToggleRenderTimeGraphOverlay()
             => ShowRenderTimeGraphOverlay = !ShowRenderTimeGraphOverlay;
 
-        public ConsoleViewModel Console { get; }
-
         public ViewModelBase? Content
         {
             get { return _content; }
@@ -193,6 +196,9 @@ namespace Avalonia.Diagnostics.ViewModels
                     case 2:
                         Content = _events;
                         break;
+                    case 3:
+                        Content = _hotKeys;
+                        break;
                     default:
                         Content = _logicalTree;
                         break;
@@ -208,10 +214,10 @@ namespace Avalonia.Diagnostics.ViewModels
             private set { RaiseAndSetIfChanged(ref _focusedControl, value); }
         }
 
-        public IInputRoot? PointerOverRoot 
-        { 
+        public IInputRoot? PointerOverRoot
+        {
             get => _pointerOverRoot;
-            private  set => RaiseAndSetIfChanged( ref _pointerOverRoot , value); 
+            private set => RaiseAndSetIfChanged(ref _pointerOverRoot, value);
         }
 
         public IInputElement? PointerOverElement
@@ -230,14 +236,9 @@ namespace Avalonia.Diagnostics.ViewModels
             private set => RaiseAndSetIfChanged(ref _pointerOverElementName, value);
         }
 
-        private void UpdateConsoleContext(ConsoleContext context)
+        public void ShowHotKeys()
         {
-            context.root = _root;
-
-            if (Content is TreePageViewModel tree)
-            {
-                context.e = tree.SelectedNode?.Visual;
-            }
+            SelectedTab = 3;
         }
 
         public void SelectControl(Control control)
@@ -251,7 +252,7 @@ namespace Avalonia.Diagnostics.ViewModels
         {
             if (Content is TreePageViewModel treeVm && treeVm.Details != null)
             {
-                treeVm.Details.SnapshotStyles = enable;
+                treeVm.Details.SnapshotFrames = enable;
             }
         }
 
@@ -262,7 +263,7 @@ namespace Avalonia.Diagnostics.ViewModels
             _pointerOverSubscription.Dispose();
             _logicalTree.Dispose();
             _visualTree.Dispose();
-
+            _currentFocusHighlightAdorner?.Dispose();
             if (TryGetRenderer() is { } renderer)
             {
                 renderer.Diagnostics.DebugOverlays = RendererDebugOverlays.None;
@@ -271,7 +272,16 @@ namespace Avalonia.Diagnostics.ViewModels
 
         private void UpdateFocusedControl()
         {
-            FocusedControl = KeyboardDevice.Instance?.FocusedElement?.GetType().Name;
+            var element = KeyboardDevice.Instance?.FocusedElement;
+            FocusedControl = element?.GetType().Name;
+            _currentFocusHighlightAdorner?.Dispose();
+            if (FocusHighlighter is IBrush brush
+                && element is InputElement input
+                && !input.DoesBelongToDevTool()
+                )
+            {
+                _currentFocusHighlightAdorner = Controls.ControlHighlightAdorner.Add(input, brush);
+            }
         }
 
         private void KeyboardPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -297,7 +307,7 @@ namespace Avalonia.Diagnostics.ViewModels
         }
 
         public int? StartupScreenIndex { get; private set; } = default;
-        
+
         [DependsOn(nameof(TreePageViewModel.SelectedNode))]
         [DependsOn(nameof(Content))]
         public bool CanShot(object? parameter)
@@ -331,12 +341,16 @@ namespace Avalonia.Diagnostics.ViewModels
             _screenshotHandler = options.ScreenshotHandler;
             StartupScreenIndex = options.StartupScreenIndex;
             ShowImplementedInterfaces = options.ShowImplementedInterfaces;
+            FocusHighlighter = options.FocusHighlighterBrush;
+            SelectedTab = (int)options.LaunchView;
+
+            _hotKeys.SetOptions(options);
         }
 
-        public bool ShowImplementedInterfaces 
-        { 
-            get => _showImplementedInterfaces; 
-            private set => RaiseAndSetIfChanged(ref _showImplementedInterfaces , value); 
+        public bool ShowImplementedInterfaces
+        {
+            get => _showImplementedInterfaces;
+            private set => RaiseAndSetIfChanged(ref _showImplementedInterfaces, value);
         }
 
         public void ToggleShowImplementedInterfaces(object parameter)
@@ -349,14 +363,25 @@ namespace Avalonia.Diagnostics.ViewModels
         }
 
         public bool ShowDetailsPropertyType
-        { 
-            get => _showPropertyType; 
-            private set => RaiseAndSetIfChanged(ref  _showPropertyType , value); 
+        {
+            get => _showPropertyType;
+            private set => RaiseAndSetIfChanged(ref _showPropertyType, value);
         }
 
         public void ToggleShowDetailsPropertyType(object parameter)
         {
             ShowDetailsPropertyType = !ShowDetailsPropertyType;
+        }
+
+        public IBrush? FocusHighlighter
+        {
+            get => _FocusHighlighter;
+            private set => RaiseAndSetIfChanged(ref _FocusHighlighter, value);
+        }
+
+        public void SelectFocusHighlighter(object parameter)
+        {
+            FocusHighlighter = parameter as IBrush;
         }
     }
 }

@@ -5,6 +5,7 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Metadata;
 using Avalonia.Platform;
 using Avalonia.Rendering.Composition.Server;
@@ -22,20 +23,21 @@ namespace Avalonia.Rendering.Composition
     {
         internal IRenderLoop Loop { get; }
         internal bool UseUiThreadForSynchronousCommits { get; }
-        private ServerCompositor _server;
+        private readonly ServerCompositor _server;
         private CompositionBatch? _nextCommit;
-        private BatchStreamObjectPool<object?> _batchObjectPool;
-        private BatchStreamMemoryPool _batchMemoryPool;
-        private Queue<ICompositorSerializable> _objectSerializationQueue = new();
-        private HashSet<ICompositorSerializable> _objectSerializationHashSet = new();
+        private readonly BatchStreamObjectPool<object?> _batchObjectPool;
+        private readonly BatchStreamMemoryPool _batchMemoryPool;
+        private readonly Queue<ICompositorSerializable> _objectSerializationQueue = new();
+        private readonly HashSet<ICompositorSerializable> _objectSerializationHashSet = new();
         private Queue<Action> _invokeBeforeCommitWrite = new(), _invokeBeforeCommitRead = new();
-        private HashSet<IDisposable> _disposeOnNextBatch = new();
+        private readonly HashSet<IDisposable> _disposeOnNextBatch = new();
         internal ServerCompositor Server => _server;
         private CompositionBatch? _pendingBatch;
         private readonly object _pendingBatchLock = new();
-        private List<Action> _pendingServerCompositorJobs = new();
+        private readonly List<Action> _pendingServerCompositorJobs = new();
+        private readonly List<Action> _pendingServerCompositorPostTargetJobs = new();
         private DiagnosticTextRenderer? _diagnosticTextRenderer;
-        private Action _triggerCommitRequested;
+        private readonly Action _triggerCommitRequested;
 
         internal IEasing DefaultEasing { get; }
 
@@ -77,14 +79,15 @@ namespace Avalonia.Rendering.Composition
         internal Compositor(IRenderLoop loop, IPlatformGraphics? gpu,
             bool useUiThreadForSynchronousCommits,
             ICompositorScheduler scheduler, bool reclaimBuffersImmediately,
-            Dispatcher dispatcher)
+            Dispatcher dispatcher, CompositionOptions? options = null)
         {
+            options ??= AvaloniaLocator.Current.GetService<CompositionOptions>() ?? new();
             Loop = loop;
             UseUiThreadForSynchronousCommits = useUiThreadForSynchronousCommits;
             Dispatcher = dispatcher;
             _batchMemoryPool = new(reclaimBuffersImmediately);
             _batchObjectPool = new(reclaimBuffersImmediately);
-            _server = new ServerCompositor(loop, gpu, _batchObjectPool, _batchMemoryPool);
+            _server = new ServerCompositor(loop, gpu, options, _batchObjectPool, _batchMemoryPool);
             _triggerCommitRequested = () => scheduler.CommitRequested(this);
 
             DefaultEasing = new SplineEasing(new KeySpline(0.25, 0.1, 0.25, 1.0));
@@ -105,6 +108,7 @@ namespace Avalonia.Rendering.Composition
             Dispatcher.VerifyAccess();
             if (_nextCommit == null)
             {
+                using var _ = NonPumpingLockHelper.Use();
                 _nextCommit = new ();
                 var pending = _pendingBatch;
                 if (pending != null)
@@ -136,7 +140,7 @@ namespace Avalonia.Rendering.Composition
         {
             Dispatcher.VerifyAccess();
             using var noPump = NonPumpingLockHelper.Use();
-
+            
             var commit = _nextCommit ??= new();
 
             (_invokeBeforeCommitRead, _invokeBeforeCommitWrite) = (_invokeBeforeCommitWrite, _invokeBeforeCommitRead);
@@ -169,14 +173,23 @@ namespace Avalonia.Rendering.Composition
                     _disposeOnNextBatch.Clear();
                 }
 
-                if (_pendingServerCompositorJobs.Count > 0)
+                
+                static void SerializeServerJobs(BatchStreamWriter writer, List<Action> list, object startMarker, object endMarker)
                 {
-                    writer.WriteObject(ServerCompositor.RenderThreadJobsStartMarker);
-                    foreach (var job in _pendingServerCompositorJobs)
-                        writer.WriteObject(job);
-                    writer.WriteObject(ServerCompositor.RenderThreadJobsEndMarker);
+                    if (list.Count > 0)
+                    {
+                        writer.WriteObject(startMarker);
+                        foreach (var job in list)
+                            writer.WriteObject(job);
+                        writer.WriteObject(endMarker);
+                    }
+                    list.Clear();
                 }
-                _pendingServerCompositorJobs.Clear();
+
+                SerializeServerJobs(writer, _pendingServerCompositorJobs, ServerCompositor.RenderThreadJobsStartMarker,
+                    ServerCompositor.RenderThreadJobsEndMarker);
+                SerializeServerJobs(writer, _pendingServerCompositorPostTargetJobs, ServerCompositor.RenderThreadPostTargetJobsStartMarker,
+                    ServerCompositor.RenderThreadPostTargetJobsEndMarker);
             }
             
             _nextCommit.CommittedAt = Server.Clock.Elapsed;
@@ -194,7 +207,7 @@ namespace Avalonia.Rendering.Composition
                     }
                 }, TaskContinuationOptions.ExecuteSynchronously);
                 _nextCommit = null;
-
+                
                 return commit;
             }
         }
@@ -226,21 +239,21 @@ namespace Avalonia.Rendering.Composition
             RequestCommitAsync();
         }
 
-        internal void PostServerJob(Action job)
+        internal void PostServerJob(Action job, bool postTarget = false)
         {
             Dispatcher.VerifyAccess();
-            _pendingServerCompositorJobs.Add(job);
+            (postTarget ? _pendingServerCompositorPostTargetJobs : _pendingServerCompositorJobs).Add(job);
             RequestCommitAsync();
         }
 
-        internal Task InvokeServerJobAsync(Action job) =>
+        internal Task InvokeServerJobAsync(Action job, bool postTarget = false) =>
             InvokeServerJobAsync<object?>(() =>
             {
                 job();
                 return null;
-            });
+            }, postTarget);
 
-        internal Task<T> InvokeServerJobAsync<T>(Func<T> job)
+        internal Task<T> InvokeServerJobAsync<T>(Func<T> job, bool postTarget = false)
         {
             var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
             PostServerJob(() =>
@@ -253,7 +266,7 @@ namespace Avalonia.Rendering.Composition
                 {
                     tcs.TrySetException(e);
                 }
-            });
+            }, postTarget);
             return tcs.Task;
         }
 
@@ -273,6 +286,16 @@ namespace Avalonia.Rendering.Composition
         {
             (await GetRenderInterfacePublicFeatures().ConfigureAwait(false)).TryGetValue(featureType, out var rv);
             return rv;
+        }
+
+        public async Task<Bitmap> CreateCompositionVisualSnapshot(CompositionVisual visual, double scaling)
+        {
+            if (visual.Compositor != this)
+                throw new InvalidOperationException();
+            if (visual.Root == null)
+                throw new InvalidOperationException();
+            var impl = await InvokeServerJobAsync(() => _server.CreateCompositionVisualSnapshot(visual.Server, scaling, true), true);
+            return new Bitmap(RefCountable.Create(impl));
         }
         
         /// <summary>
@@ -294,7 +317,7 @@ namespace Avalonia.Rendering.Composition
             _objectSerializationHashSet.Contains(serializable);
 
         /// <summary>
-        /// Attempts to get the Compositor instance that will be used by default for new <see cref="Avalonia.Controls.TopLevel"/>s
+        /// Attempts to get the Compositor instance that will be used by default for new TopLevels
         /// created by the current platform backend.
         ///
         /// This won't work for every single platform backend and backend settings, e. g. with web we'll need to have

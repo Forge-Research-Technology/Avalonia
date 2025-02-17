@@ -3,6 +3,8 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using System.Diagnostics.CodeAnalysis;
+using System.ComponentModel;
+using System.Globalization;
 
 namespace Avalonia.Markup.Xaml.MarkupExtensions
 {
@@ -24,6 +26,7 @@ namespace Avalonia.Markup.Xaml.MarkupExtensions
             {
                 TypeResolver = serviceProvider.ResolveType,
                 Converter = Converter,
+                ConverterCulture = ConverterCulture,
                 ConverterParameter = ConverterParameter,
                 ElementName = ElementName,
                 FallbackValue = FallbackValue,
@@ -35,11 +38,15 @@ namespace Avalonia.Markup.Xaml.MarkupExtensions
                 RelativeSource = RelativeSource,
                 DefaultAnchor = new WeakReference(serviceProvider.GetDefaultAnchor()),
                 TargetNullValue = TargetNullValue,
-                NameScope = new WeakReference<INameScope?>(serviceProvider.GetService<INameScope>())
+                NameScope = new WeakReference<INameScope?>(serviceProvider.GetService<INameScope>()),
+                UpdateSourceTrigger = UpdateSourceTrigger,
             };
         }
 
         public IValueConverter? Converter { get; set; }
+
+        [TypeConverter(typeof(CultureInfoIetfLanguageTagConverter))]
+        public CultureInfo? ConverterCulture { get; set; }
 
         public object? ConverterParameter { get; set; }
 
@@ -54,12 +61,18 @@ namespace Avalonia.Markup.Xaml.MarkupExtensions
 
         public BindingPriority Priority { get; set; } = BindingPriority.LocalValue;
 
-        public object? Source { get; set; }
+        public object? Source { get; set; } = AvaloniaProperty.UnsetValue;
 
         public string? StringFormat { get; set; }
 
         public RelativeSource? RelativeSource { get; set; }
 
         public object? TargetNullValue { get; set; } = AvaloniaProperty.UnsetValue;
+        
+        /// <summary>
+        /// Gets or sets a value that determines the timing of binding source updates for
+        /// <see cref="BindingMode.TwoWay"/> and <see cref="BindingMode.OneWayToSource"/> bindings.
+        /// </summary>
+        public UpdateSourceTrigger UpdateSourceTrigger { get; set; }
     }
 }
