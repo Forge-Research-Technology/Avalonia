@@ -47,7 +47,7 @@ public sealed class HeadlessUnitTestSession : IDisposable
         {
             action();
             return Task.FromResult(0);
-        }, false ,cancellationToken);
+        }, false, cancellationToken);
     }
 
     /// <inheritdoc cref="DispatchCore{TResult}"/>
@@ -126,9 +126,8 @@ public sealed class HeadlessUnitTestSession : IDisposable
         var scope = AvaloniaLocator.EnterScope();
         try
         {
-            Dispatcher.UIThread.EmptyAfterUnitTests();
+            Dispatcher.ResetForUnitTests();
             _appBuilder.SetupUnsafe();
-            Dispatcher.RemakeForUnitTests();
         }
         catch
         {
@@ -200,7 +199,7 @@ public sealed class HeadlessUnitTestSession : IDisposable
                     }
                     else
                     {
-                        action();   
+                        action();
                     }
                 }
                 catch (OperationCanceledException)
