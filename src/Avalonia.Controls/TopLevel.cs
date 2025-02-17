@@ -23,7 +23,6 @@ using Avalonia.Utilities;
 using Avalonia.Input.Platform;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Metadata;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 
@@ -102,6 +101,14 @@ namespace Avalonia.Controls
                 inherits: true);
 
         /// <summary>
+        /// Defines the AutoSafeAreaPadding attached property.
+        /// </summary>
+        public static readonly AttachedProperty<bool> AutoSafeAreaPaddingProperty =
+            AvaloniaProperty.RegisterAttached<TopLevel, Control, bool>(
+                "AutoSafeAreaPadding",
+                defaultValue: true);
+
+        /// <summary>
         /// Defines the <see cref="BackRequested"/> event.
         /// </summary>
         public static readonly RoutedEvent<RoutedEventArgs> BackRequestedEvent = 
@@ -114,6 +121,7 @@ namespace Avalonia.Controls
             );
 
         private readonly IInputManager? _inputManager;
+        private readonly IToolTipService? _tooltipService;
         private readonly IAccessKeyHandler? _accessKeyHandler;
         private readonly IKeyboardNavigationHandler? _keyboardNavigationHandler;
         private readonly IGlobalStyles? _globalStyles;
@@ -121,6 +129,7 @@ namespace Avalonia.Controls
         private readonly PointerOverPreProcessor? _pointerOverPreProcessor;
         private readonly IDisposable? _pointerOverPreProcessorSubscription;
         private readonly IDisposable? _backGestureSubscription;
+        private readonly Dictionary<AvaloniaProperty, Action> _platformImplBindings = new();
         private Size _clientSize;
         private Size? _frameSize;
         private WindowTransparencyLevel _actualTransparencyLevel;
@@ -128,6 +137,7 @@ namespace Avalonia.Controls
         private Border? _transparencyFallbackBorder;
         private TargetWeakEventSubscriber<TopLevel, ResourcesChangedEventArgs>? _resourcesChangesSubscriber;
         private IStorageProvider? _storageProvider;
+        private Screens? _screens;
         private LayoutDiagnosticBridge? _layoutDiagnosticBridge;
         
         /// <summary>
@@ -154,6 +164,12 @@ namespace Avalonia.Controls
                 }
             });
 
+            AutoSafeAreaPaddingProperty.Changed.AddClassHandler<Control>((view, e) =>
+            {
+                var topLevel = view as TopLevel ?? view.Parent as TopLevel;
+                topLevel?.InvalidateChildInsetsPadding();
+            });
+
             PointerOverElementProperty.Changed.AddClassHandler<TopLevel>((topLevel, e) =>
             {
                 if (e.OldValue is InputElement oldInputElement)
@@ -167,6 +183,8 @@ namespace Avalonia.Controls
                     newInputElement.PropertyChanged += topLevel.PointerOverElementOnPropertyChanged;
                 }
             });
+
+            ToolTip.ServiceEnabledProperty.Changed.Subscribe(OnToolTipServiceEnabledChanged);
         }
 
         /// <summary>
@@ -196,11 +214,12 @@ namespace Avalonia.Controls
 
             _accessKeyHandler = TryGetService<IAccessKeyHandler>(dependencyResolver);
             _inputManager = TryGetService<IInputManager>(dependencyResolver);
+            _tooltipService = TryGetService<IToolTipService>(dependencyResolver);
             _keyboardNavigationHandler = TryGetService<IKeyboardNavigationHandler>(dependencyResolver);
             _globalStyles = TryGetService<IGlobalStyles>(dependencyResolver);
             _applicationThemeHost = TryGetService<IThemeVariantHost>(dependencyResolver);
 
-            Renderer = new CompositingRenderer(this, impl.Compositor, () => impl.Surfaces);
+            Renderer = new CompositingRenderer(this, impl.Compositor, () => PlatformImpl.Surfaces ?? []);
             Renderer.SceneInvalidated += SceneInvalidated;
 
             impl.SetInputRoot(this);
@@ -211,6 +230,13 @@ namespace Avalonia.Controls
             impl.Resized = HandleResized;
             impl.ScalingChanged = HandleScalingChanged;
             impl.TransparencyLevelChanged = HandleTransparencyLevelChanged;
+
+            CreatePlatformImplBinding(TransparencyLevelHintProperty, hint => PlatformImpl.SetTransparencyLevelHint(hint ?? Array.Empty<WindowTransparencyLevel>()));
+            CreatePlatformImplBinding(ActualThemeVariantProperty, variant =>
+            {
+                variant ??= ThemeVariant.Default;
+                PlatformImpl?.SetFrameThemeVariant((PlatformThemeVariant?)variant ?? PlatformThemeVariant.Light);
+            });
 
             _keyboardNavigationHandler?.SetOwner(this);
             _accessKeyHandler?.SetOwner(this);
@@ -227,20 +253,6 @@ namespace Avalonia.Controls
             }
 
             ClientSize = impl.ClientSize;
-            FrameSize = impl.FrameSize;
-
-            this.GetObservable(PointerOverElementProperty)
-                .Select(
-                    x => (x as InputElement)?.GetObservable(CursorProperty) ?? Observable.Empty<Cursor>())
-                .Switch().Subscribe(cursor =>
-                {
-                    if(cursor is not null)
-                    {
-                        cursor.Scale(RenderScaling);
-                    }
-
-                    PlatformImpl?.SetCursor(cursor?.PlatformImpl);
-                });
 
             if (((IStyleHost)this).StylingParent is IResourceHost applicationResources)
             {
@@ -263,7 +275,7 @@ namespace Avalonia.Controls
                 systemNavigationManager.BackRequested += (_, e) =>
                 {
                     e.RoutedEvent = BackRequestedEvent;
-                    RaiseEvent(e);
+                    Dispatcher.UIThread.Send(_ => RaiseEvent(e));
                 };
             }
 
@@ -282,6 +294,7 @@ namespace Avalonia.Controls
                             KeyModifiers = (KeyModifiers)rawKeyEventArgs.Modifiers,
                             Key = rawKeyEventArgs.Key,
                             PhysicalKey = rawKeyEventArgs.PhysicalKey,
+                            KeyDeviceType= rawKeyEventArgs.KeyDeviceType,
                             KeySymbol = rawKeyEventArgs.KeySymbol
                         };
 
@@ -296,13 +309,12 @@ namespace Avalonia.Controls
                 if (backRequested)
                 {
                     var backRequestedEventArgs = new RoutedEventArgs(BackRequestedEvent);
-                    RaiseEvent(backRequestedEventArgs);
+                    Dispatcher.UIThread.Send(_ => RaiseEvent(backRequestedEventArgs));
 
                     e.Handled = backRequestedEventArgs.Handled;
                 }
             });
         }
-
         /// <summary>
         /// Fired when the window is opened.
         /// </summary>
@@ -416,7 +428,23 @@ namespace Avalonia.Controls
         /// An <see cref="IPlatformHandle"/> describing the window handle, or null if the handle
         /// could not be retrieved.
         /// </returns>
-        public IPlatformHandle? TryGetPlatformHandle() => (PlatformImpl as IWindowBaseImpl)?.Handle;
+        public IPlatformHandle? TryGetPlatformHandle() => PlatformImpl?.Handle;
+
+        private protected void CreatePlatformImplBinding<TValue>(StyledProperty<TValue> property, Action<TValue> onValue)
+        {
+            _platformImplBindings.TryGetValue(property, out var actions);
+            _platformImplBindings[property] = actions + UpdatePlatformImpl;
+
+            UpdatePlatformImpl(); // execute the action now to handle the default value, which may have been overridden
+
+            void UpdatePlatformImpl()
+            {
+                if (PlatformImpl is not null)
+                {
+                    onValue(GetValue(property));
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the renderer for the window.
@@ -443,12 +471,12 @@ namespace Avalonia.Controls
         /// <summary>
         /// Gets the access key handler for the window.
         /// </summary>
-        internal IAccessKeyHandler AccessKeyHandler => _accessKeyHandler!;
+        internal IAccessKeyHandler? AccessKeyHandler => _accessKeyHandler;
 
         /// <summary>
         /// Gets or sets the keyboard navigation handler for the window.
         /// </summary>
-        IKeyboardNavigationHandler IInputRoot.KeyboardNavigationHandler => _keyboardNavigationHandler!;
+        IKeyboardNavigationHandler? IInputRoot.KeyboardNavigationHandler => _keyboardNavigationHandler;
 
         /// <inheritdoc/>
         IInputElement? IInputRoot.PointerOverElement
@@ -467,23 +495,42 @@ namespace Avalonia.Controls
         }
 
         /// <summary>
-        /// Helper for setting the color of the platform's system bars
+        /// Helper for setting the color of the platform's system bars.
         /// </summary>
-        /// <param name="control">The main view attached to the toplevel, or the toplevel</param>
-        /// <param name="color">The color to set</param>
+        /// <param name="control">The main view attached to the toplevel, or the toplevel.</param>
+        /// <param name="color">The color to set.</param>
         public static void SetSystemBarColor(Control control, SolidColorBrush? color)
         {
             control.SetValue(SystemBarColorProperty, color);
         }
 
         /// <summary>
-        /// Helper for getting the color of the platform's system bars
+        /// Helper for getting the color of the platform's system bars.
         /// </summary>
-        /// <param name="control">The main view attached to the toplevel, or the toplevel</param>
-        /// <returns>The current color of the platform's system bars</returns>
+        /// <param name="control">The main view attached to the toplevel, or the toplevel.</param>
+        /// <returns>The current color of the platform's system bars.</returns>
         public static SolidColorBrush? GetSystemBarColor(Control control)
         {
             return control.GetValue(SystemBarColorProperty);
+        }
+
+        /// <summary>
+        /// Enabled or disables whenever TopLevel should automatically adjust paddings depending on the safe area.
+        /// </summary>
+        /// <param name="control">The main view attached to the toplevel, or the toplevel.</param>
+        /// <param name="value">Value to be set.</param>
+        public static void SetAutoSafeAreaPadding(Control control, bool value)
+        {
+            control.SetValue(AutoSafeAreaPaddingProperty, value);
+        }
+
+        /// <summary>
+        /// Gets if auto safe area padding is enabled.
+        /// </summary>
+        /// <param name="control">The main view attached to the toplevel, or the toplevel.</param>
+        public static bool GetAutoSafeAreaPadding(Control control)
+        {
+            return control.GetValue(AutoSafeAreaPaddingProperty);
         }
 
         /// <inheritdoc/>
@@ -493,7 +540,7 @@ namespace Avalonia.Controls
         public double RenderScaling => PlatformImpl?.RenderScaling ?? 1;
 
         IStyleHost IStyleHost.StylingParent => _globalStyles!;
-        
+
         /// <summary>
         /// File System storage service used for file pickers and bookmarks.
         /// </summary>
@@ -503,6 +550,14 @@ namespace Avalonia.Controls
             ?? new NoopStorageProvider();
 
         public IInsetsManager? InsetsManager => PlatformImpl?.TryGetFeature<IInsetsManager>();
+        public IInputPane? InputPane => PlatformImpl?.TryGetFeature<IInputPane>();
+        public ILauncher Launcher => PlatformImpl?.TryGetFeature<ILauncher>() ?? new NoopLauncher();
+
+        /// <summary>
+        /// Gets platform screens implementation.
+        /// </summary>
+        public Screens? Screens => _screens ??=
+            PlatformImpl?.TryGetFeature<IScreenImpl>() is { } screenImpl ? new Screens(screenImpl) : null;
 
         /// <summary>
         /// Gets the platform's clipboard implementation
@@ -514,7 +569,7 @@ namespace Avalonia.Controls
 
         /// <inheritdoc />
         public IPlatformSettings? PlatformSettings => AvaloniaLocator.Current.GetService<IPlatformSettings>();
-        
+
         /// <inheritdoc/>
         Point IRenderRoot.PointToClient(PixelPoint p)
         {
@@ -574,21 +629,41 @@ namespace Avalonia.Controls
         {
             base.OnPropertyChanged(change);
 
-            if (change.Property == TransparencyLevelHintProperty)
+            if (change.Property == ContentProperty)
             {
-                if (PlatformImpl != null)
-                {
-                    PlatformImpl.SetTransparencyLevelHint(
-                        change.GetNewValue<IReadOnlyList<WindowTransparencyLevel>>() ?? Array.Empty<WindowTransparencyLevel>());
-                }
+                InvalidateChildInsetsPadding();
             }
-            else if (change.Property == ActualThemeVariantProperty)
+            else if (_platformImplBindings.TryGetValue(change.Property, out var bindingAction))
             {
-                var newThemeVariant = change.GetNewValue<ThemeVariant?>() ?? ThemeVariant.Default;
-                PlatformImpl?.SetFrameThemeVariant((PlatformThemeVariant?)newThemeVariant ?? PlatformThemeVariant.Light);
+                bindingAction();
             }
         }
-        
+
+        private IDisposable? _insetsPaddings;
+        private void InvalidateChildInsetsPadding()
+        {
+            if (Content is Control child
+                && InsetsManager is {} insetsManager)
+            {
+                insetsManager.SafeAreaChanged -= InsetsManagerOnSafeAreaChanged;
+                _insetsPaddings?.Dispose();
+
+                if (child.GetValue(AutoSafeAreaPaddingProperty))
+                {
+                    insetsManager.SafeAreaChanged += InsetsManagerOnSafeAreaChanged;
+                    _insetsPaddings = child.SetValue(
+                        PaddingProperty,
+                        insetsManager.SafeAreaPadding,
+                        BindingPriority.Style); // lower priority, so it can be redefined by user
+                }
+
+                void InsetsManagerOnSafeAreaChanged(object? sender, SafeAreaChangedArgs e)
+                {
+                    InvalidateChildInsetsPadding();
+                }
+            }
+        }
+
         /// <summary>
         /// Creates the layout manager for this <see cref="TopLevel" />.
         /// </summary>
@@ -616,6 +691,7 @@ namespace Avalonia.Controls
             // We need to wait for the renderer to complete any in-flight operations
             Renderer.Dispose();
             StopRendering();
+            
             Debug.Assert(PlatformImpl != null);
             // The PlatformImpl is completely invalid at this point
             PlatformImpl = null;
@@ -646,6 +722,7 @@ namespace Avalonia.Controls
             OnClosed(EventArgs.Empty);
 
             LayoutManager.Dispose();
+            _platformImplBindings.Clear();
         }
 
         /// <summary>
@@ -656,7 +733,6 @@ namespace Avalonia.Controls
         internal virtual void HandleResized(Size clientSize, WindowResizeReason reason)
         {
             ClientSize = clientSize;
-            FrameSize = PlatformImpl!.FrameSize;
             Width = clientSize.Width;
             Height = clientSize.Height;
             LayoutManager.ExecuteLayoutPass();
@@ -671,7 +747,7 @@ namespace Avalonia.Controls
         private void HandleScalingChanged(double scaling)
         {
             LayoutHelper.InvalidateSelfAndChildrenMeasure(this);
-            ScalingChanged?.Invoke(this, EventArgs.Empty);
+            Dispatcher.UIThread.Send(_ => ScalingChanged?.Invoke(this, EventArgs.Empty));
         }
 
         private void HandleTransparencyLevelChanged(WindowTransparencyLevel transparencyLevel)
@@ -717,15 +793,17 @@ namespace Avalonia.Controls
         /// <param name="e">The event args.</param>
         protected virtual void OnOpened(EventArgs e)
         {
-            FrameSize = PlatformImpl?.FrameSize;
-            Opened?.Invoke(this, e);  
-        } 
+            Dispatcher.UIThread.Send(_ => Opened?.Invoke(this, e));
+        }
 
         /// <summary>
         /// Raises the <see cref="Closed"/> event.
         /// </summary>
         /// <param name="e">The event args.</param>
-        protected virtual void OnClosed(EventArgs e) => Closed?.Invoke(this, e);
+        protected virtual void OnClosed(EventArgs e)
+        {
+            Dispatcher.UIThread.Send(_ => Closed?.Invoke(this, e));
+        }
 
         /// <summary>
         /// Tries to get a service from an <see cref="IAvaloniaDependencyResolver"/>, logging a
@@ -757,12 +835,18 @@ namespace Avalonia.Controls
         {
             if (PlatformImpl != null)
             {
-                if (e is RawPointerEventArgs pointerArgs)
+                Dispatcher.UIThread.Send(static state =>
                 {
-                    pointerArgs.InputHitTestResult = this.InputHitTest(pointerArgs.Position);
-                }
+                    var (topLevel, e) = (ValueTuple<TopLevel, RawInputEventArgs>)state!;
+                    if (e is RawPointerEventArgs pointerArgs)
+                    {
+                        var hitTestElement = topLevel.InputHitTest(pointerArgs.Position, enabledElementsOnly: false);
 
-                _inputManager?.ProcessInput(e);
+                        pointerArgs.InputHitTestResult = (hitTestElement, FirstEnabledAncestor(hitTestElement));
+                    }
+
+                    topLevel._inputManager?.ProcessInput(e);
+                }, (this, e));
             }
             else
             {
@@ -770,7 +854,17 @@ namespace Avalonia.Controls
                     this,
                     "PlatformImpl is null, couldn't handle input.");
             }
+        }
 
+        private static IInputElement? FirstEnabledAncestor(IInputElement? hitTestElement)
+        {
+            var candidate = hitTestElement;
+            while (candidate?.IsEffectivelyEnabled == false)
+            {
+                candidate = (candidate as Visual)?.Parent as IInputElement;
+            }
+
+            return candidate;
         }
 
         private void PointerOverElementOnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -789,6 +883,30 @@ namespace Avalonia.Controls
         private void SceneInvalidated(object? sender, SceneInvalidatedEventArgs e)
         {
             _pointerOverPreProcessor?.SceneInvalidated(e.DirtyRect);
+            UpdateToolTip(e.DirtyRect);
+        }
+
+        private static void OnToolTipServiceEnabledChanged(AvaloniaPropertyChangedEventArgs<bool> args)
+        {
+            if (args.GetNewValue<bool>()
+                && args.Priority != BindingPriority.Inherited 
+                && args.Sender is Visual visual 
+                && GetTopLevel(visual) is { } topLevel)
+            {
+                topLevel.UpdateToolTip(visual.Bounds.Translate((Vector)visual.TranslatePoint(default, topLevel)!));
+            }
+        }
+
+        private void UpdateToolTip(Rect dirtyRect)
+        {
+            if (_tooltipService != null && IsPointerOver && _pointerOverPreProcessor?.LastPosition is { } lastPos)
+            {
+                var clientPoint = this.PointToClient(lastPos);
+                if (dirtyRect.Contains(clientPoint))
+                {
+                    _tooltipService.Update(this, HitTester.HitTestFirst(clientPoint, this, null));
+                }
+            }
         }
 
         void PlatformImpl_LostFocus()

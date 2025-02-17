@@ -9,16 +9,18 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
         public XamlIlPropertyInfoAccessorFactoryEmitter AccessorFactoryEmitter { get; }
         public XamlIlTrampolineBuilder TrampolineBuilder { get; }
 
-        public AvaloniaXamlIlCompilerConfiguration(IXamlTypeSystem typeSystem, 
-            IXamlAssembly defaultAssembly, 
+        public AvaloniaXamlIlCompilerConfiguration(
+            IXamlTypeSystem typeSystem,
+            IXamlAssembly? defaultAssembly,
             XamlLanguageTypeMappings typeMappings,
-            XamlXmlnsMappings xmlnsMappings,
-            XamlValueConverter customValueConverter,
+            XamlXmlnsMappings? xmlnsMappings,
+            XamlValueConverter? customValueConverter,
             XamlIlClrPropertyInfoEmitter clrPropertyEmitter,
             XamlIlPropertyInfoAccessorFactoryEmitter accessorFactoryEmitter,
             XamlIlTrampolineBuilder trampolineBuilder,
-            IXamlIdentifierGenerator identifierGenerator = null)
-            : base(typeSystem, defaultAssembly, typeMappings, xmlnsMappings, customValueConverter, identifierGenerator)
+            IXamlIdentifierGenerator? identifierGenerator,
+            XamlDiagnosticsHandler? diagnosticsHandler)
+            : base(typeSystem, defaultAssembly, typeMappings, xmlnsMappings, customValueConverter, identifierGenerator, diagnosticsHandler)
         {
             ClrPropertyEmitter = clrPropertyEmitter;
             AccessorFactoryEmitter = accessorFactoryEmitter;

@@ -1,5 +1,8 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Avalonia.Compatibility;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -27,7 +30,12 @@ namespace Avalonia.Native
 
         public static AvaloniaNativePlatform Initialize(IntPtr factory, AvaloniaNativePlatformOptions options)
         {
-            var result = new AvaloniaNativePlatform(MicroComRuntime.CreateProxyFor<IAvaloniaNativeFactory>(factory, true));
+            var factoryProxy = MicroComRuntime.CreateProxyFor<IAvaloniaNativeFactory>(factory, true);
+
+            AvaloniaLocator.CurrentMutable.Bind<IAvaloniaNativeFactory>().ToConstant(factoryProxy);
+            
+            var result = new AvaloniaNativePlatform(factoryProxy);
+            
             result.DoInitialize(options);
 
             return result;
@@ -39,14 +47,13 @@ namespace Avalonia.Native
         {
             if (options.AvaloniaNativeLibraryPath != null)
             {
-                var loader = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-                    (IDynLoader)new Win32Loader() :
-                    new UnixLoader();
-
-                var lib = loader.LoadLibrary(options.AvaloniaNativeLibraryPath);
-                var proc = loader.GetProcAddress(lib, "CreateAvaloniaNative", false);
+                var lib = NativeLibraryEx.Load(options.AvaloniaNativeLibraryPath);
+                if (!NativeLibraryEx.TryGetExport(lib, "CreateAvaloniaNative", out var proc))
+                {
+                    throw new InvalidOperationException(
+                        "Unable to get \"CreateAvaloniaNative\" export from AvaloniaNativeLibrary library");
+                }
                 var d = Marshal.GetDelegateForFunctionPointer<CreateAvaloniaNativeDelegate>(proc);
-
 
                 return Initialize(d(), options);
             }
@@ -100,20 +107,22 @@ namespace Avalonia.Native
             }
 
             AvaloniaLocator.CurrentMutable
-                .Bind<IDispatcherImpl>()
-                .ToConstant(new DispatcherImpl(_factory.CreatePlatformThreadingInterface()))
+                .Bind<IDispatcherImpl>().ToConstant(new DispatcherImpl(_factory.CreatePlatformThreadingInterface()))
                 .Bind<ICursorFactory>().ToConstant(new CursorFactory(_factory.CreateCursorFactory()))
+                .Bind<IScreenImpl>().ToConstant(new ScreenImpl(_factory.CreateScreens))
                 .Bind<IPlatformIconLoader>().ToSingleton<IconLoader>()
                 .Bind<IKeyboardDevice>().ToConstant(KeyboardDevice)
                 .Bind<IPlatformSettings>().ToConstant(new NativePlatformSettings(_factory.CreatePlatformSettings()))
                 .Bind<IWindowingPlatform>().ToConstant(this)
                 .Bind<IOverlayPlatform>().ToConstant(this)
                 .Bind<IClipboard>().ToConstant(new ClipboardImpl(_factory.CreateClipboard()))
-                .Bind<IRenderTimer>().ToConstant(new DefaultRenderTimer(60))
+                .Bind<IRenderTimer>().ToConstant(new ThreadProxyRenderTimer(new AvaloniaNativeRenderTimer(_factory.CreatePlatformRenderTimer())))
                 .Bind<IMountedVolumeInfoProvider>().ToConstant(new MacOSMountedVolumeInfoProvider())
                 .Bind<IPlatformDragSource>().ToConstant(new AvaloniaNativeDragSource(_factory))
                 .Bind<IPlatformLifetimeEventsImpl>().ToConstant(applicationPlatform)
-                .Bind<INativeApplicationCommands>().ToConstant(new MacOSNativeMenuCommands(_factory.CreateApplicationCommands()));
+                .Bind<INativeApplicationCommands>().ToConstant(new MacOSNativeMenuCommands(_factory.CreateApplicationCommands()))
+                .Bind<IActivatableLifetime>().ToSingleton<MacOSActivatableLifetime>()
+                .Bind<IStorageProviderFactory>().ToConstant(new StorageProviderApi(_factory.CreateStorageProvider(), options.AppSandboxEnabled));
 
             var hotkeys = new PlatformHotkeyConfiguration(KeyModifiers.Meta, wholeWordTextActionModifiers: KeyModifiers.Alt);
             hotkeys.MoveCursorToTheStartOfLine.Add(new KeyGesture(Key.Left, hotkeys.CommandModifiers));
@@ -122,6 +131,14 @@ namespace Avalonia.Native
             hotkeys.MoveCursorToTheEndOfLineWithSelection.Add(new KeyGesture(Key.Right, hotkeys.CommandModifiers | hotkeys.SelectionModifiers));
 
             AvaloniaLocator.CurrentMutable.Bind<PlatformHotkeyConfiguration>().ToConstant(hotkeys);
+
+            AvaloniaLocator.CurrentMutable.Bind<KeyGestureFormatInfo>().ToConstant(new KeyGestureFormatInfo(new Dictionary<Key, string>()
+                    {
+                        { Key.Back , "⌫" }, { Key.Down , "↓" }, { Key.End , "↘" }, { Key.Escape , "⎋" },
+                        { Key.Home , "↖" }, { Key.Left , "←" }, { Key.Return , "↩" }, { Key.PageDown , "⇟" },
+                        { Key.PageUp , "⇞" }, { Key.Right , "→" }, { Key.Space , "␣" }, { Key.Tab , "⇥" },
+                        { Key.Up , "↑" }
+                    }, ctrl: "⌃", meta: "⌘", shift: "⇧", alt: "⌥"));
 
             foreach (var mode in _options.RenderingMode)
             {
@@ -137,15 +154,14 @@ namespace Avalonia.Native
                         // ignored
                     }
                 }
-#pragma warning disable CS0618
                 else if (mode == AvaloniaNativeRenderingMode.Metal)
-#pragma warning restore CS0618
                 {
                     try
                     {
                         var metal = new MetalPlatformGraphics(_factory);
                         metal.CreateContext().Dispose();
                         _platformGraphics = metal;
+                        break;
                     }
                     catch
                     {
@@ -202,6 +218,11 @@ namespace Avalonia.Native
         public void HideWindow(IntPtr nsWindow)
         {
             _factory.HideWindow(nsWindow);
+        }
+        
+        public ITopLevelImpl CreateEmbeddableTopLevel()
+        {
+            return new EmbeddableTopLevelImpl(_factory);
         }
     }
 }

@@ -16,6 +16,14 @@ namespace Avalonia.Controls
 {
     public partial class AutoCompleteBox
     {
+        /// <summary>
+        /// Defines see <see cref="TextBox.CaretIndex"/> property.
+        /// </summary>
+        public static readonly StyledProperty<int> CaretIndexProperty =
+            TextBox.CaretIndexProperty.AddOwner<AutoCompleteBox>(new(
+                defaultValue: 0,
+                defaultBindingMode:BindingMode.TwoWay));
+
         public static readonly StyledProperty<string?> WatermarkProperty =
             TextBox.WatermarkProperty.AddOwner<AutoCompleteBox>();
 
@@ -158,6 +166,33 @@ namespace Avalonia.Controls
         public static readonly StyledProperty<Func<string?, CancellationToken, Task<IEnumerable<object>>>?> AsyncPopulatorProperty =
             AvaloniaProperty.Register<AutoCompleteBox, Func<string?, CancellationToken, Task<IEnumerable<object>>>?>(
                 nameof(AsyncPopulator));
+
+        /// <summary>
+        /// Defines the <see cref="MaxLength"/> property
+        /// </summary>
+        public static readonly StyledProperty<int> MaxLengthProperty =
+            TextBox.MaxLengthProperty.AddOwner<AutoCompleteBox>();
+
+        /// <summary>
+        /// Defines the <see cref="InnerLeftContent"/> property
+        /// </summary>
+        public static readonly StyledProperty<object?> InnerLeftContentProperty =
+            TextBox.InnerLeftContentProperty.AddOwner<AutoCompleteBox>();
+
+        /// <summary>
+        /// Defines the <see cref="InnerRightContent"/> property
+        /// </summary>
+        public static readonly StyledProperty<object?> InnerRightContentProperty =
+            TextBox.InnerRightContentProperty.AddOwner<AutoCompleteBox>();
+
+        /// <summary>
+        /// Gets or sets the caret index
+        /// </summary>
+        public int CaretIndex
+        {
+            get => GetValue(CaretIndexProperty);
+            set => SetValue(CaretIndexProperty, value);
+        }
 
         /// <summary>
         /// Gets or sets the minimum number of characters required to be entered
@@ -449,5 +484,33 @@ namespace Avalonia.Controls
             get => GetValue(ItemsSourceProperty);
             set => SetValue(ItemsSourceProperty, value);
         }
+       
+        /// <summary>
+        /// Gets or sets the maximum number of characters that the <see cref="AutoCompleteBox"/> can accept.
+        /// This constraint only applies for manually entered (user-inputted) text.
+        /// </summary>
+        public int MaxLength
+        {
+            get => GetValue(MaxLengthProperty);
+            set => SetValue(MaxLengthProperty, value);
+        }
+      
+        /// <summary>
+        /// Gets or sets custom content that is positioned on the left side of the text layout box
+        /// </summary>
+        public object? InnerLeftContent
+        {
+            get => GetValue(InnerLeftContentProperty);
+            set => SetValue(InnerLeftContentProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets custom content that is positioned on the right side of the text layout box
+        /// </summary>
+        public object? InnerRightContent
+        {
+            get => GetValue(InnerRightContentProperty);
+            set => SetValue(InnerRightContentProperty, value);
+        }      
     }
 }

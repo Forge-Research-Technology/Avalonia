@@ -456,6 +456,70 @@ namespace Avalonia.Controls.UnitTests
             });
         }
 
+        [Fact]
+        public void CaretIndex_Changes()
+        {
+            string text = "Sample text";
+            string expectedText = "Saple text";
+            RunTest((control, textbox) =>
+            {
+                control.Text = text;
+                control.Measure(Size.Infinity);
+                Dispatcher.UIThread.RunJobs();
+
+                textbox.RaiseEvent(new KeyEventArgs
+                {
+                    RoutedEvent = InputElement.KeyDownEvent,
+                    Key = Key.Right
+                });
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(1, control.CaretIndex);
+                Assert.Equal(textbox.CaretIndex, control.CaretIndex);
+
+                control.CaretIndex = 3;
+
+                Assert.Equal(3, control.CaretIndex);
+                Assert.Equal(textbox.CaretIndex, control.CaretIndex);
+
+                textbox.RaiseEvent(new KeyEventArgs
+                {
+                    RoutedEvent = InputElement.KeyDownEvent,
+                    Key = Key.Back
+                });
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(2, control.CaretIndex);
+                Assert.Equal(textbox.CaretIndex, control.CaretIndex);
+                Assert.True(control.Text == expectedText && textbox.Text == expectedText);
+            });
+        }
+
+        [Fact]
+        public void Attempting_To_Open_Without_Items_Does_Not_Prevent_Future_Opening_With_Items()
+        {
+            RunTest((control, textbox) =>
+            {
+                // Allow the drop down to open without anything entered.
+                control.MinimumPrefixLength = 0;
+
+                // Clear the items.
+                var source = control.ItemsSource;
+                control.ItemsSource = null;
+                control.IsDropDownOpen = true;
+
+                // DropDown was not actually opened because there are no items.
+                Assert.False(control.IsDropDownOpen);
+
+                // Set the items and try to open the drop down again.
+                control.ItemsSource = source;
+                control.IsDropDownOpen = true;
+
+                // DropDown can now be opened.
+                Assert.True(control.IsDropDownOpen);
+            });
+        }
+
         /// <summary>
         /// Retrieves a defined predicate filter through a new AutoCompleteBox 
         /// control instance.
@@ -1111,7 +1175,8 @@ namespace Avalonia.Controls.UnitTests
                 var textBox =
                     new TextBox
                     {
-                        Name = "PART_TextBox"
+                        Name = "PART_TextBox",
+                        [!!TextBox.CaretIndexProperty] = control[!!AutoCompleteBox.CaretIndexProperty]
                     }.RegisterInNameScope(scope);
                 var listbox =
                     new ListBox

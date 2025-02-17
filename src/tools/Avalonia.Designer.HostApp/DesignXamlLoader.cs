@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using Avalonia.Markup.Xaml;
@@ -8,6 +9,7 @@ using TinyJson;
 
 namespace Avalonia.Designer.HostApp;
 
+[RequiresUnreferencedCode(XamlX.TrimmingMessages.DynamicXamlReference)]
 class DesignXamlLoader : AvaloniaXamlLoader.IRuntimeXamlLoader
 {
     public object Load(RuntimeXamlLoaderDocument document, RuntimeXamlLoaderConfiguration configuration)
@@ -17,11 +19,11 @@ class DesignXamlLoader : AvaloniaXamlLoader.IRuntimeXamlLoader
         return AvaloniaXamlIlRuntimeCompiler.Load(document, configuration);
     }
 
-    private void PreloadDepsAssemblies(Assembly targetAssembly)
+    private void PreloadDepsAssemblies(Assembly? targetAssembly)
     {
         // Assemblies loaded in memory (e.g. single file) return empty string from Location.
         // In these cases, don't try probing next to the assembly.
-        var assemblyLocation = targetAssembly.Location;
+        var assemblyLocation = targetAssembly?.Location;
         if (string.IsNullOrEmpty(assemblyLocation))
         {
             return;
@@ -30,7 +32,7 @@ class DesignXamlLoader : AvaloniaXamlLoader.IRuntimeXamlLoader
         var depsJsonFile = Path.ChangeExtension(assemblyLocation, ".deps.json");
         if (!File.Exists(depsJsonFile))
         {
-            var sameDir = Path.GetDirectoryName(depsJsonFile);
+            var sameDir = Path.GetDirectoryName(depsJsonFile)!;
             var fallbackDepsFiles = Directory.GetFiles(sameDir, "*.deps.json");
             if (fallbackDepsFiles.Length == 1)
             {

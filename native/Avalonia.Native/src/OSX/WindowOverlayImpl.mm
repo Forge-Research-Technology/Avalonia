@@ -12,7 +12,7 @@ WindowOverlayImpl::~WindowOverlayImpl()
     }
 }
 
-WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true) {
+WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents *events) : WindowImpl(events), WindowBaseImpl(events, false, true), TopLevelImpl(events) {
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
@@ -39,6 +39,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         if ([event window] != this->parentWindow)
         {
+            if (isTrackingMouse)
+            {
+                isTrackingMouse = false;
+                [View mouseExited: event];
+            }
+            
             //NSLog(@"MONITOR overlay=FALSE -> normal chain");
             return event;
         }
@@ -48,12 +54,13 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         // We only need it here in WindowOverlayImpl and not any other Avalonia window
 
         auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
-        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto avnPoint = ToAvnPoint(localPoint);
         auto point = [View translateLocalPoint:avnPoint];
 
         auto hitTest = this->BaseEvents->HitTest(point);
         static bool shouldUpdateCursor = false;
-
+        isTrackingMouse = hitTest;
+        
         if (hitTest == false)
         {
             //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
@@ -87,7 +94,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         }
 
         auto localPoint = [View convertPoint:[event locationInWindow] toView:View];
-        auto avnPoint = [AvnView toAvnPoint:localPoint];
+        auto avnPoint = ToAvnPoint(localPoint);
         auto point = [View translateLocalPoint:avnPoint];
 
         if (point.Y < 0)

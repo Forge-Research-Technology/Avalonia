@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Text;
 using Avalonia.Automation.Peers;
 using Avalonia.Collections;
 using Avalonia.Controls.Documents;
@@ -8,13 +8,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Metadata;
+using Avalonia.Utilities;
 
 namespace Avalonia.Controls
 {
     /// <summary>
     /// A control that displays a block of text.
     /// </summary>
-    [DebuggerDisplay("Text = {" + nameof(DebugText) + "}")]
     public class TextBlock : Control, IInlineHost
     {
         /// <summary>
@@ -54,7 +54,7 @@ namespace Avalonia.Controls
             TextElement.FontWeightProperty.AddOwner<TextBlock>();
 
         /// <summary>
-        /// Defines the <see cref="FontWeight"/> property.
+        /// Defines the <see cref="FontStretch"/> property.
         /// </summary>
         public static readonly StyledProperty<FontStretch> FontStretchProperty =
             TextElement.FontStretchProperty.AddOwner<TextBlock>();
@@ -149,6 +149,12 @@ namespace Avalonia.Controls
             Inline.TextDecorationsProperty.AddOwner<TextBlock>();
 
         /// <summary>
+        /// Defines the <see cref="FontFeatures"/> property.
+        /// </summary>
+        public static readonly StyledProperty<FontFeatureCollection?> FontFeaturesProperty =
+            TextElement.FontFeaturesProperty.AddOwner<TextBlock>();
+
+        /// <summary>
         /// Defines the <see cref="Inlines"/> property.
         /// </summary>
         public static readonly DirectProperty<TextBlock, InlineCollection?> InlinesProperty =
@@ -156,8 +162,8 @@ namespace Avalonia.Controls
                 nameof(Inlines), t => t.Inlines, (t, v) => t.Inlines = v);
 
         private TextLayout? _textLayout;
-        private Size _constraint;
-        private IReadOnlyList<TextRun>? _textRuns;
+        protected Size _constraint = new(double.NaN, double.NaN);
+        protected IReadOnlyList<TextRun>? _textRuns;
         private InlineCollection? _inlines;
 
         public Size Constraint => _constraint;
@@ -214,8 +220,6 @@ namespace Avalonia.Controls
             get => GetValue(TextProperty);
             set => SetValue(TextProperty, value);
         }
-
-        private string? DebugText => Text ?? Inlines?.Text;
 
         /// <summary>
         /// Gets or sets the font family used to draw the control's text.
@@ -344,6 +348,15 @@ namespace Avalonia.Controls
         }
 
         /// <summary>
+        /// Gets or sets the font features.
+        /// </summary>
+        public FontFeatureCollection? FontFeatures
+        {
+            get => GetValue(FontFeaturesProperty);
+            set => SetValue(FontFeaturesProperty, value);
+        }
+
+        /// <summary>
         /// Gets or sets the inlines.
         /// </summary>
         [Content]
@@ -356,6 +369,13 @@ namespace Avalonia.Controls
         protected override bool BypassFlowDirectionPolicies => true;
 
         internal bool HasComplexContent => Inlines != null && Inlines.Count > 0;
+
+        private protected Size GetMaxSizeFromConstraint()
+        {
+            var maxWidth = double.IsNaN(_constraint.Width) ? 0.0 : _constraint.Width;
+            var maxHeight = double.IsNaN(_constraint.Height) ? 0.0 : _constraint.Height;
+            return new Size(maxWidth, maxHeight);
+        }
 
         /// <summary>
         /// The BaselineOffset property provides an adjustment to baseline offset
@@ -639,11 +659,12 @@ namespace Avalonia.Controls
 
             var defaultProperties = new GenericTextRunProperties(
                 typeface,
+                FontFeatures,
                 FontSize,
                 TextDecorations,
                 Foreground);
 
-            var paragraphProperties = new GenericTextParagraphProperties(FlowDirection, TextAlignment, true, false,
+            var paragraphProperties = new GenericTextParagraphProperties(FlowDirection, IsMeasureValid ? TextAlignment : TextAlignment.Left, true, false,
                 defaultProperties, TextWrapping, LineHeight, 0, LetterSpacing)
             {
                 LineSpacing = LineSpacing
@@ -660,12 +681,14 @@ namespace Avalonia.Controls
                 textSource = new SimpleTextSource(text ?? "", defaultProperties);
             }
 
+            var maxSize = GetMaxSizeFromConstraint();
+
             return new TextLayout(
                 textSource,
                 paragraphProperties,
                 TextTrimming,
-                _constraint.Width,
-                _constraint.Height,
+                maxSize.Width,
+                maxSize.Height,
                 MaxLines);
         }
 
@@ -674,6 +697,7 @@ namespace Avalonia.Controls
         /// </summary>
         protected void InvalidateTextLayout()
         {
+            InvalidateVisual();
             InvalidateMeasure();
         }
 
@@ -690,13 +714,19 @@ namespace Avalonia.Controls
         {
             var scale = LayoutHelper.GetLayoutScale(this);
             var padding = LayoutHelper.RoundLayoutThickness(Padding, scale, scale);
+            var deflatedSize = availableSize.Deflate(padding);
 
-            _constraint = availableSize.Deflate(padding);
+            if (_constraint != deflatedSize)
+            {
+                //Reset TextLayout when the constraint is not matching.
+                _textLayout?.Dispose();
+                _textLayout = null;
+                _constraint = deflatedSize;
 
-            //Reset TextLayout otherwise constraint might be outdated.
-            _textLayout?.Dispose();
-            _textLayout = null;
-
+                //Force arrange so text will be properly alligned.
+                InvalidateArrange();
+            }
+           
             var inlines = Inlines;
 
             if (HasComplexContent)
@@ -711,9 +741,12 @@ namespace Avalonia.Controls
                 _textRuns = textRuns;
             }
 
-            var width = TextLayout.OverhangLeading + TextLayout.WidthIncludingTrailingWhitespace + TextLayout.OverhangTrailing;
+            //This implicitly recreated the TextLayout with a new constraint if we previously reset it.
+            var textLayout = TextLayout;
 
-            return new Size(width, TextLayout.Height).Inflate(padding);
+            var size = LayoutHelper.RoundLayoutSizeUp(new Size(textLayout.MinTextWidth, textLayout.Height).Inflate(padding), 1, 1);
+
+            return size;
         }
 
         protected override Size ArrangeOverride(Size finalSize)
@@ -721,19 +754,24 @@ namespace Avalonia.Controls
             var scale = LayoutHelper.GetLayoutScale(this);
             var padding = LayoutHelper.RoundLayoutThickness(Padding, scale, scale);
 
-            //Fixes: #11019
-            if (finalSize.Width < _constraint.Width)
-            {
-                _textLayout?.Dispose();
-                _textLayout = null;
-                _constraint = finalSize.Deflate(padding);
-            }
+            var availableSize = finalSize.Deflate(padding);
+
+            //ToDo: Introduce a text run cache to be able to reuse shaped runs etc.
+            _textLayout?.Dispose();
+            _textLayout = null;
+            _constraint = availableSize;
+
+            //This implicitly recreated the TextLayout with a new constraint.
+            var textLayout = TextLayout;
 
             if (HasComplexContent)
-            {             
+            {
+                //Clear visual children before complex run arrangement
+                VisualChildren.Clear();
+
                 var currentY = padding.Top;
 
-                foreach (var textLine in TextLayout.TextLines)
+                foreach (var textLine in textLayout.TextLines)
                 {
                     var currentX = padding.Left + textLine.Start;
 
@@ -744,6 +782,10 @@ namespace Avalonia.Controls
                             if (drawable is EmbeddedControlRun controlRun
                                 && controlRun.Control is Control control)
                             {
+                                //Add again to prevent clipping
+                                //Fixes: #17194
+                                VisualChildren.Add(control);
+
                                 control.Arrange(
                                     new Rect(new Point(currentX, currentY),
                                     new Size(control.DesiredSize.Width, textLine.Height)));
@@ -798,6 +840,7 @@ namespace Avalonia.Controls
 
                 case nameof(Text):
                 case nameof(TextDecorations):
+                case nameof(FontFeatures):
                 case nameof(Foreground):
                     {
                         InvalidateTextLayout();
@@ -848,7 +891,17 @@ namespace Avalonia.Controls
 
         IAvaloniaList<Visual> IInlineHost.VisualChildren => VisualChildren;
 
-        public readonly record struct SimpleTextSource : ITextSource
+        internal override void BuildDebugDisplay(StringBuilder builder, bool includeContent)
+        {
+            base.BuildDebugDisplay(builder, includeContent);
+
+            if (includeContent)
+            {
+                DebugDisplayHelper.AppendOptionalValue(builder, nameof(Text), Text ?? Inlines?.Text, true);
+            }
+        }
+
+        protected readonly record struct SimpleTextSource : ITextSource
         {
             private readonly string _text;
             private readonly TextRunProperties _defaultProperties;
@@ -882,10 +935,12 @@ namespace Avalonia.Controls
 #pragma warning restore CA1815
         {
             private readonly IReadOnlyList<TextRun> _textRuns;
+            private readonly IReadOnlyList<ValueSpan<TextRunProperties>>? _textModifier;
 
-            public InlinesTextSource(IReadOnlyList<TextRun> textRuns)
+            public InlinesTextSource(IReadOnlyList<TextRun> textRuns, IReadOnlyList<ValueSpan<TextRunProperties>>? textModifier = null)
             {
                 _textRuns = textRuns;
+                _textModifier = textModifier;
             }
 
             public IReadOnlyList<TextRun> TextRuns => _textRuns;
@@ -908,11 +963,13 @@ namespace Avalonia.Controls
                         continue;
                     }
 
-                    if (textRun is TextCharacters)
+                    if (textRun is TextCharacters textCharacters)
                     {
                         var skip = Math.Max(0, textSourceIndex - currentPosition);
 
-                        return new TextCharacters(textRun.Text.Slice(skip), textRun.Properties!);
+                        var textStyleRun = FormattedTextSource.CreateTextStyleRun(textRun.Text.Slice(skip).Span, textSourceIndex, textCharacters.Properties, _textModifier);
+
+                        return new TextCharacters(textRun.Text.Slice(skip, textStyleRun.Length), textStyleRun.Value);
                     }
 
                     return textRun;

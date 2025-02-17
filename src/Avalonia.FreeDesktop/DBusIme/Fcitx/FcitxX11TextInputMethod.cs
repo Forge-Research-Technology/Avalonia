@@ -29,7 +29,7 @@ namespace Avalonia.FreeDesktop.DBusIme.Fcitx
                 var resp = await method.CreateICv3Async(GetAppName(),
                     Process.GetCurrentProcess().Id);
 
-                var proxy = new OrgFcitxFcitxInputContext(Connection, name, $"/inputcontext_{resp.icid}");
+                var proxy = new OrgFcitxFcitxInputContext(Connection, name, $"/inputcontext_{resp.Icid}");
                 _context = new FcitxICWrapper(proxy);
             }
             else
@@ -46,11 +46,11 @@ namespace Avalonia.FreeDesktop.DBusIme.Fcitx
             return true;
         }
 
-        private void OnPreedit(Exception? arg1, ((string, int)[] str, int cursorpos) args)
+        private void OnPreedit(Exception? arg1, ((string?, int)[]? str, int cursorpos) args)
         {
             int? cursor = null;
-            string preeditString = null;
-            if (args.str != null! && args.str.Length > 0)
+            string? preeditString = null;
+            if (args.str != null && args.str.Length > 0)
             {
                 preeditString = string.Join("", args.str.Select(x => x.Item1));
 

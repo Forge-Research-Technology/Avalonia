@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using Avalonia.Markup.Parsers;
 using Avalonia.Utilities;
-using XamlX;
 using XamlX.Ast;
 using XamlX.Transform;
 using XamlX.Transform.Transformers;
 using XamlX.TypeSystem;
-using XamlParseException = XamlX.XamlParseException;
 
 namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
 {
@@ -81,11 +79,11 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             return node;
         }
 
-        private static BindingExpressionGrammar.INode ConvertLongFormPropertiesToBindingExpressionNode(
+        private static BindingExpressionGrammar.INode? ConvertLongFormPropertiesToBindingExpressionNode(
             AstTransformationContext context,
             XamlAstObjectNode binding)
         {
-            BindingExpressionGrammar.INode convertedNode = null;
+            BindingExpressionGrammar.INode? convertedNode = null;
 
             var syntheticCompiledBindingProperties = binding.Children.OfType<XamlAstXamlPropertyValueNode>()
                 .Where(v => v.Property is AvaloniaSyntheticCompiledBindingProperty)
@@ -112,12 +110,12 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             }
             else if (elementNameProperty != null)
             {
-                throw new XamlParseException($"Invalid ElementName '{elementNameProperty.Values[0]}'.", elementNameProperty.Values[0]);
+                throw new XamlBindingsTransformException($"Invalid ElementName '{elementNameProperty.Values[0]}'.", elementNameProperty.Values[0]);
             }
 
             if (sourceProperty != null && convertedNode != null)
             {
-                throw new XamlParseException("Only one of ElementName, Source, or RelativeSource specified as a binding source. Only one property is allowed.", binding);
+                throw new XamlBindingsTransformException("Only one of ElementName, Source, or RelativeSource specified as a binding source. Only one property is allowed.", binding);
             }
 
             if (GetRelativeSourceObjectFromAssignment(
@@ -127,7 +125,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             {
                 if (convertedNode != null)
                 {
-                    throw new XamlParseException("Only one of ElementName, Source, or RelativeSource specified as a binding source. Only one property is allowed.", binding);
+                    throw new XamlBindingsTransformException("Only one of ElementName, Source, or RelativeSource specified as a binding source. Only one property is allowed.", binding);
                 }
 
                 var modeProperty = relativeSourceObject.Children
@@ -167,14 +165,14 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                                 true).GetClrType(),
                             XamlTypeExtensionNode typeExtensionNode => typeExtensionNode.Value.GetClrType(),
                             null => null,
-                            _ => throw new XamlParseException($"Unsupported node for AncestorType property", relativeSourceObject)
+                            _ => throw new XamlBindingsTransformException($"Unsupported node for AncestorType property", relativeSourceObject)
                         };
 
                     if (ancestorType is null)
                     {
                         if (treeType == "Visual")
                         {
-                            throw new XamlParseException("AncestorType must be set for RelativeSourceMode.FindAncestor when searching the visual tree.", relativeSourceObject);
+                            throw new XamlBindingsTransformException("AncestorType must be set for RelativeSourceMode.FindAncestor when searching the visual tree.", relativeSourceObject);
                         }
                         else if (treeType == "Logical")
                         {
@@ -188,30 +186,28 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
 
                             if (ancestorType is null)
                             {
-                                throw new XamlX.XamlParseException("Unable to resolve implicit ancestor type based on XAML tree.", relativeSourceObject);
+                                throw new XamlBindingsTransformException("Unable to resolve implicit ancestor type based on XAML tree.", relativeSourceObject);
                             }
                         }
                     }
 
                     if (treeType == "Visual")
                     {
-                        convertedNode = new VisualAncestorBindingExpressionNode
+                        convertedNode = new VisualAncestorBindingExpressionNode(ancestorType!)
                         {
-                            Type = ancestorType,
                             Level = ancestorLevel
                         };
                     }
                     else if (treeType == "Logical")
                     {
-                        convertedNode = new LogicalAncestorBindingExpressionNode
+                        convertedNode = new LogicalAncestorBindingExpressionNode(ancestorType!)
                         {
-                            Type = ancestorType,
                             Level = ancestorLevel
                         };
                     }
                     else
                     {
-                        throw new XamlParseException($"Unknown tree type '{treeType}'.", binding);
+                        throw new XamlBindingsTransformException($"Unknown tree type '{treeType}'.", binding);
                     }
                 }
                 else if (mode == "DataContext")
@@ -229,20 +225,20 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                             x.ScopeType == AvaloniaXamlIlTargetTypeMetadataNode.ScopeTypes.ControlTemplate);
                     if (contentTemplateNode is null)
                     {
-                        throw new XamlParseException("A binding with a TemplatedParent RelativeSource has to be in a ControlTemplate.", binding);
+                        throw new XamlBindingsTransformException("A binding with a TemplatedParent RelativeSource has to be in a ControlTemplate.", binding);
                     }
 
                     var parentType = contentTemplateNode.TargetType.GetClrType();
                     if (parentType is null)
                     {
-                        throw new XamlParseException("TargetType has to be set on ControlTemplate or it should be defined inside of a Style.", binding);
+                        throw new XamlBindingsTransformException("TargetType has to be set on ControlTemplate or it should be defined inside of a Style.", binding);
                     } 
 
-                    convertedNode = new TemplatedParentBindingExpressionNode { Type = parentType };
+                    convertedNode = new TemplatedParentBindingExpressionNode(parentType);
                 }
                 else
                 {
-                    throw new XamlParseException($"Unknown RelativeSource mode '{mode}'.", binding);
+                    throw new XamlBindingsTransformException($"Unknown RelativeSource mode '{mode}'.", binding);
                 }
             }
 
@@ -260,8 +256,8 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
 
         private static bool GetRelativeSourceObjectFromAssignment(
             AstTransformationContext context,
-            XamlAstXamlPropertyValueNode relativeSourceProperty,
-            out XamlAstObjectNode relativeSourceObject)
+            XamlAstXamlPropertyValueNode? relativeSourceProperty,
+            [NotNullWhen(true)] out XamlAstObjectNode? relativeSourceObject)
         {
             relativeSourceObject = null;
             if (relativeSourceProperty is null)
@@ -273,7 +269,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             {
                 if (me.Type.GetClrType() != context.GetAvaloniaTypes().RelativeSource)
                 {
-                    throw new XamlParseException($"Expected an object of type 'Avalonia.Data.RelativeSource'. Found a object of type '{me.Type.GetClrType().GetFqn()}'", me);
+                    throw new XamlBindingsTransformException($"Expected an object of type 'Avalonia.Data.RelativeSource'. Found a object of type '{me.Type.GetClrType().GetFqn()}'", me);
                 }
 
                 relativeSourceObject = (XamlAstObjectNode)me.Value;
@@ -284,7 +280,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             {
                 if (on.Type.GetClrType() != context.GetAvaloniaTypes().RelativeSource)
                 {
-                    throw new XamlParseException($"Expected an object of type 'Avalonia.Data.RelativeSource'. Found a object of type '{on.Type.GetClrType().GetFqn()}'", on);
+                    throw new XamlBindingsTransformException($"Expected an object of type 'Avalonia.Data.RelativeSource'. Found a object of type '{on.Type.GetClrType().GetFqn()}'", on);
                 }
 
                 relativeSourceObject = on;
@@ -320,36 +316,20 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
         }
     }
 
-    class VisualAncestorBindingExpressionNode : BindingExpressionGrammar.INode
+    class VisualAncestorBindingExpressionNode(IXamlType type) : BindingExpressionGrammar.INode
     {
-        public IXamlType Type { get; set; }
+        public IXamlType Type { get; set; } = type;
         public int Level { get; set; }
     }
 
-    class LogicalAncestorBindingExpressionNode : BindingExpressionGrammar.INode
+    class LogicalAncestorBindingExpressionNode(IXamlType type) : BindingExpressionGrammar.INode
     {
-        public IXamlType Type { get; set; }
+        public IXamlType Type { get; set; } = type;
         public int Level { get; set; }
     }
 
-    class TemplatedParentBindingExpressionNode : BindingExpressionGrammar.INode
+    class TemplatedParentBindingExpressionNode(IXamlType type) : BindingExpressionGrammar.INode
     {
-        public IXamlType Type { get; set; }
-    }
-
-    class RawSourceBindingExpressionNode : XamlAstNode, BindingExpressionGrammar.INode
-    {
-        public RawSourceBindingExpressionNode(IXamlAstValueNode rawSource)
-            : base(rawSource)
-        {
-            RawSource = rawSource;
-        }
-
-        public IXamlAstValueNode RawSource { get; private set; }
-
-        public override void VisitChildren(IXamlAstVisitor visitor)
-        {
-            RawSource = (IXamlAstValueNode)RawSource.Visit(visitor);
-        }
+        public IXamlType Type { get; set; } = type;
     }
 }

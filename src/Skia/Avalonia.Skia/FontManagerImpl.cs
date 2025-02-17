@@ -58,15 +58,14 @@ namespace Avalonia.Skia
 
             culture ??= CultureInfo.CurrentUICulture;
 
-            t_languageTagBuffer ??= new string[2];
-            t_languageTagBuffer[0] = culture.TwoLetterISOLanguageName;
-            t_languageTagBuffer[1] = culture.ThreeLetterISOLanguageName;
+            t_languageTagBuffer ??= new string[1];
+            t_languageTagBuffer[0] = culture.Name;
 
-            var skTypeface = _skFontManager.MatchCharacter(null, skFontStyle, t_languageTagBuffer, codepoint);
+            using var skTypeface = _skFontManager.MatchCharacter(null, skFontStyle, t_languageTagBuffer, codepoint);
 
             if (skTypeface != null)
             {
-                fontKey = new Typeface(skTypeface.FamilyName, fontStyle, fontWeight, fontStretch);
+                fontKey = new Typeface(skTypeface.FamilyName, (FontStyle)skTypeface.FontStyle.Slant, (FontWeight)skTypeface.FontStyle.Weight, (FontStretch)skTypeface.FontStyle.Width);
 
                 return true;
             }
@@ -108,13 +107,13 @@ namespace Avalonia.Skia
             return true;
         }
 
-        public bool TryCreateGlyphTypeface(Stream stream, [NotNullWhen(true)] out IGlyphTypeface? glyphTypeface)
+        public bool TryCreateGlyphTypeface(Stream stream, FontSimulations fontSimulations, [NotNullWhen(true)] out IGlyphTypeface? glyphTypeface)
         {
             var skTypeface = SKTypeface.FromStream(stream);
 
             if (skTypeface != null)
             {
-                glyphTypeface = new GlyphTypefaceImpl(skTypeface, FontSimulations.None);
+                glyphTypeface = new GlyphTypefaceImpl(skTypeface, fontSimulations);
 
                 return true;
             }

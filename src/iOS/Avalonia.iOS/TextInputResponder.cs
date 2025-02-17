@@ -14,8 +14,6 @@ using UIKit;
 
 namespace Avalonia.iOS;
 
-#nullable enable
-
 partial class AvaloniaView
 {
 
@@ -108,7 +106,12 @@ partial class AvaloniaView
         {
             get
             {
-                var mode = UITextInputMode.CurrentInputMode;
+                UITextInputMode? mode = null;
+#if !TVOS
+#pragma warning disable CA1422
+                mode = UITextInputMode.CurrentInputMode;
+#pragma warning restore CA1422
+#endif
                 // Can be empty see https://developer.apple.com/documentation/uikit/uitextinputmode/1614522-activeinputmodes
                 if (mode is null && UITextInputMode.ActiveInputModes.Length > 0)
                 {
@@ -159,17 +162,20 @@ partial class AvaloniaView
         {
             Logger.TryGet(LogEventLevel.Debug, ImeLog)?.Log(null, "Triggering key press {key}", key);
 
-            _view._topLevelImpl.Input(new RawKeyEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot,
-                RawKeyEventType.KeyDown, key, RawInputModifiers.None, physicalKey, keySymbol));
+            if (_view._topLevelImpl.Input is { } input)
+            {
+                input.Invoke(new RawKeyEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot,
+                    RawKeyEventType.KeyDown, key, RawInputModifiers.None, physicalKey, keySymbol));
 
-            _view._topLevelImpl.Input(new RawKeyEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot,
-                RawKeyEventType.KeyUp, key, RawInputModifiers.None, physicalKey, keySymbol));
+                input.Invoke(new RawKeyEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot,
+                    RawKeyEventType.KeyUp, key, RawInputModifiers.None, physicalKey, keySymbol));
+            }
         }
 
         private void TextInput(string text)
         {
             Logger.TryGet(LogEventLevel.Debug, ImeLog)?.Log(null, "Triggering text input {text}", text);
-            _view._topLevelImpl.Input(new RawTextInputEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot, text));
+            _view._topLevelImpl.Input?.Invoke(new RawTextInputEventArgs(KeyboardDevice.Instance!, 0, _view.InputRoot, text));
         }
 
         void IUIKeyInput.InsertText(string text)
@@ -214,15 +220,17 @@ partial class AvaloniaView
 
             string result = "";
             if (string.IsNullOrEmpty(_markedText))
+            {
                 if(surroundingText != null && r.EndIndex < surroundingText.Length)
                 {
                     result = surroundingText[r.StartIndex..r.EndIndex];
                 }
+            }
             else
             {
                 var span = new CombinedSpan3<char>(surroundingText.AsSpan().Slice(0, currentSelection.Start),
                     _markedText,
-                    surroundingText.AsSpan().Slice(currentSelection.Start));
+                    surroundingText.AsSpan().Slice(currentSelection.Start, currentSelection.End - currentSelection.Start));
                 var buf = new char[r.EndIndex - r.StartIndex];
                 span.CopyTo(buf, r.StartIndex);
                 result = new string(buf);

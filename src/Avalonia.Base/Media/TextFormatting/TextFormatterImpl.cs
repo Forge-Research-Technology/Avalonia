@@ -12,7 +12,7 @@ namespace Avalonia.Media.TextFormatting
     internal sealed class TextFormatterImpl : TextFormatter
     {
         private static readonly char[] s_empty = { ' ' };
-        private static readonly char[] s_defaultText = new char[TextRun.DefaultTextSourceLength];
+        private static readonly string s_defaultText = new string('a', TextRun.DefaultTextSourceLength);
 
         [ThreadStatic] private static BidiData? t_bidiData;
         [ThreadStatic] private static BidiAlgorithm? t_bidiAlgorithm;
@@ -206,9 +206,11 @@ namespace Avalonia.Media.TextFormatting
                 if (!textRun.Text.IsEmpty)
                     text = textRun.Text.Span;
                 else if (textRun.Length == TextRun.DefaultTextSourceLength)
-                    text = s_defaultText;
+                    text = s_defaultText.AsSpan();
                 else
-                    text = new char[textRun.Length];
+                {
+                    text = new string('a', textRun.Length).AsSpan();
+                }
 
                 bidiData.Append(text);
             }
@@ -270,7 +272,7 @@ namespace Avalonia.Media.TextFormatting
                                 }
 
                                 var shaperOptions = new TextShaperOptions(
-                                    properties.CachedGlyphTypeface,
+                                    properties.CachedGlyphTypeface, properties.FontFeatures,
                                     properties.FontRenderingEmSize, shapeableRun.BidiLevel, properties.CultureInfo,
                                     paragraphProperties.DefaultIncrementalTab, paragraphProperties.LetterSpacing);
 
@@ -713,31 +715,37 @@ namespace Avalonia.Media.TextFormatting
 
             var measuredLength = MeasureLength(textRuns, paragraphWidth);
 
-            if (measuredLength == 0 && paragraphProperties.TextWrapping == TextWrapping.WrapWithOverflow)
+            if(measuredLength == 0)
             {
-                for (int i = 0; i < textRuns.Count; i++)
+                if(paragraphProperties.TextWrapping == TextWrapping.NoWrap)
                 {
-                    measuredLength += textRuns[i].Length;
-                }
-
-                TextLineBreak? textLineBreak;
-
-                if (currentLineBreak?.TextEndOfLine is { } textEndOfLine)
-                {
-                    textLineBreak = new TextLineBreak(textEndOfLine, resolvedFlowDirection);
+                    for (int i = 0; i < textRuns.Count; i++)
+                    {
+                        measuredLength += textRuns[i].Length;
+                    }
                 }
                 else
                 {
-                    textLineBreak = null;
+                    var firstRun = textRuns[0];
+
+                    if(firstRun is ShapedTextRun)
+                    {
+                        var graphemeEnumerator = new GraphemeEnumerator(firstRun.Text.Span);
+
+                        if(graphemeEnumerator.MoveNext(out var grapheme))
+                        {
+                            measuredLength = grapheme.Length;
+                        }
+                        else
+                        {
+                            measuredLength = 1;
+                        }
+                    }
+                    else
+                    {
+                        measuredLength = firstRun.Length;
+                    }
                 }
-
-                var textLine = new TextLineImpl(textRuns.ToArray(), firstTextSourceIndex, measuredLength,
-                  paragraphWidth, paragraphProperties, resolvedFlowDirection,
-                  textLineBreak);
-
-                textLine.FinalizeLine();
-
-                return textLine;
             }
 
             var currentLength = 0;
@@ -948,31 +956,6 @@ namespace Avalonia.Media.TextFormatting
 
                 return true;
             }
-        }
-
-        /// <summary>
-        /// Creates a shaped symbol.
-        /// </summary>
-        /// <param name="textRun">The symbol run to shape.</param>
-        /// <param name="flowDirection">The flow direction.</param>
-        /// <returns>
-        /// The shaped symbol.
-        /// </returns>
-        internal static ShapedTextRun CreateSymbol(TextRun textRun, FlowDirection flowDirection)
-        {
-            var textShaper = TextShaper.Current;
-
-            var glyphTypeface = textRun.Properties!.CachedGlyphTypeface;
-
-            var fontRenderingEmSize = textRun.Properties.FontRenderingEmSize;
-
-            var cultureInfo = textRun.Properties.CultureInfo;
-
-            var shaperOptions = new TextShaperOptions(glyphTypeface, fontRenderingEmSize, (sbyte)flowDirection, cultureInfo);
-
-            var shapedBuffer = textShaper.ShapeText(textRun.Text, shaperOptions);
-
-            return new ShapedTextRun(shapedBuffer, textRun.Properties);
         }
     }
 }

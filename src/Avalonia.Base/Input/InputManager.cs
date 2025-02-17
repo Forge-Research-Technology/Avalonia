@@ -32,19 +32,10 @@ namespace Avalonia.Input
         /// <inheritdoc/>
         public void ProcessInput(RawInputEventArgs e)
         {
-            try
-            {
-                _preProcess.OnNext(e);
-                e.Device?.ProcessRawEvent(e);
-                _process.OnNext(e);
-                _postProcess.OnNext(e);
-            }
-            catch (Exception exception)
-            {
-                var isHandled = Dispatcher.UIThread.HandleUnhandledException(exception);
-                if (!isHandled)
-                    throw;
-            }
+            _preProcess.OnNext(e);
+            e.Device?.ProcessRawEvent(e);
+            _process.OnNext(e);
+            _postProcess.OnNext(e);
         }
     }
 }

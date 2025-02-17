@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Platform;
+using Avalonia.Styling;
 
 namespace Avalonia.Controls
 {
@@ -36,25 +37,23 @@ namespace Avalonia.Controls
         private bool _isActive;
         private int _ignoreVisibilityChanges;
         private WindowBase? _owner;
-
-        protected bool IgnoreVisibilityChanges => _ignoreVisibilityChanges > 0; 
+        
+        protected bool IgnoreVisibilityChanges => _ignoreVisibilityChanges > 0;
 
         static WindowBase()
         {
             IsVisibleProperty.OverrideDefaultValue<WindowBase>(false);
-            IsVisibleProperty.Changed.AddClassHandler<WindowBase>((x,e) => x.IsVisibleChanged(e));
-
-            
-            TopmostProperty.Changed.AddClassHandler<WindowBase>((w, e) => w.PlatformImpl?.SetTopmost((bool)e.NewValue!));
         }
 
         public WindowBase(IWindowBaseImpl impl) : this(impl, AvaloniaLocator.Current)
         {
+            CreatePlatformImplBinding(TopmostProperty, topmost => PlatformImpl!.SetTopmost(topmost));
+            
+            FrameSize = impl.FrameSize;
         }
 
         public WindowBase(IWindowBaseImpl impl, IAvaloniaDependencyResolver? dependencyResolver) : base(impl, dependencyResolver)
         {
-            Screens = new Screens(impl.Screen);
             impl.Activated = HandleActivated;
             impl.Deactivated = HandleDeactivated;
             impl.PositionChanged = HandlePositionChanged;
@@ -109,7 +108,9 @@ namespace Avalonia.Controls
             private set => SetAndRaise(IsActiveProperty, ref _isActive, value);
         }
 
-        public Screens Screens { get; }
+        /// <inheritdoc cref="TopLevel.Screens"/>
+        public new Screens Screens => base.Screens
+            ?? throw new InvalidOperationException("Windowing backend wasn't properly initialized.");
 
         /// <summary>
         /// Gets or sets the owner of the window.
@@ -192,6 +193,16 @@ namespace Avalonia.Controls
             }
         }
 
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            if (change.Property == IsVisibleProperty)
+            {
+                IsVisibleChanged(change);
+            }
+        }
+
         /// <inheritdoc/>
         protected override void OnClosed(EventArgs e)
         {
@@ -205,6 +216,8 @@ namespace Avalonia.Controls
         /// <inheritdoc/>
         protected override void OnOpened(EventArgs e)
         {
+            FrameSize = PlatformImpl?.FrameSize;
+            
             // Window must manually raise Loaded/Unloaded events as it is a visual root and
             // does not raise OnAttachedToVisualTreeCore/OnDetachedFromVisualTreeCore events
             ScheduleOnLoadedCore();
