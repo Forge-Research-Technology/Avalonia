@@ -39,6 +39,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         if ([event window] != this->parentWindow)
         {
+            if (isTrackingMouse)
+            {
+                isTrackingMouse = false;
+                [View mouseExited: event];
+            }
+            
             //NSLog(@"MONITOR overlay=FALSE -> normal chain");
             return event;
         }
@@ -53,7 +59,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         auto hitTest = this->BaseEvents->HitTest(point);
         static bool shouldUpdateCursor = false;
-
+        isTrackingMouse = hitTest;
+        
         if (hitTest == false)
         {
             //NSLog(@"MONITOR overlay=TRUE hitTest=FALSE -> normal chain");
