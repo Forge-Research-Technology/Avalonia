@@ -33,7 +33,6 @@ WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel, bool
     _inResize = false;
     BaseEvents = events;
     View = [[AvnView alloc] initWithParent:this];
-    InputMethod.setNoAddRef(new AvnTextInputMethod(View));
     StandardContainer = [[AutoFitContentView new] initWithContent:View];
 
     lastPositionSet = { 0, 0 };
