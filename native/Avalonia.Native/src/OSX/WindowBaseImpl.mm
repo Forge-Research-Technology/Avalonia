@@ -22,7 +22,6 @@
 @class AutoFitContentView;
 
 WindowBaseImpl::~WindowBaseImpl() {
-    View = nullptr;
     Window = nullptr;
 }
 
@@ -32,7 +31,6 @@ WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel, bool
     _shown = false;
     _inResize = false;
     BaseEvents = events;
-    View = [[AvnView alloc] initWithParent:this];
     StandardContainer = [[AutoFitContentView new] initWithContent:View];
 
     lastPositionSet = { 0, 0 };
