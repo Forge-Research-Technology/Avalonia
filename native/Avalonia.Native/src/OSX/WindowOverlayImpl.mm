@@ -255,10 +255,15 @@ HRESULT WindowOverlayImpl::Activate() {
 HRESULT WindowOverlayImpl::Close()
 {
     START_COM_CALL;
-    HRESULT result = WindowImpl::Close();
-    [View onClosed];
-    
-    return result;
+    if ( !closed ) {
+        closed = true;
+        HRESULT result = WindowImpl::Close();
+        [View onClosed];
+        BaseEvents->Closed();
+        return result;
+    }
+
+    return S_OK;
 }
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
