@@ -22,6 +22,7 @@
 @class AutoFitContentView;
 
 WindowBaseImpl::~WindowBaseImpl() {
+    View = nullptr;
     Window = nullptr;
 }
 
