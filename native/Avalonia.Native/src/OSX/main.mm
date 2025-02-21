@@ -298,7 +298,11 @@ public:
         @autoreleasepool {
             auto window = (__bridge NSWindow*) nsWindow;
 
+            // Throwing all rocks at this to ensure powerpoint doesn't reshow the window
+            [window setAlphaValue:0.0];
+            [window setOpaque:NO];
             [window orderOut:nil];
+
             return S_OK;
         }
     }
