@@ -126,10 +126,11 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if (([event keyCode] == 9 || [event keyCode] == 0) &&
+            if (([event keyCode] == 9 || [event keyCode] == 0 || [event keyCode] == 6 || [event keyCode] == 16) &&
                 ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
-                // Current special keys are: Cmd+v (keycode 9) and Cmd+a (keycode 0)
+                // Current special keys are: Cmd+v (keycode 9), Cmd+a (keycode 0), Cmd+z (keycode 6) 
+                // and Cmd+y (keycode 16)
 
                 // We need to treat these combinations in a special way in our local event monitor,
                 // in order to ensure they reach their intended handler. This is required because
