@@ -529,10 +529,12 @@ public:
     
     virtual HRESULT ShowFolder(char* filePath) override
     {
-        NSURL* fileURL = [NSURL fileURLWithPath: [NSString stringWithUTF8String:filePath]
-                                    isDirectory: false];
-        [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs: @[fileURL]];
-        return S_OK;
+        @autoreleasepool {
+            NSURL* fileURL = [NSURL fileURLWithPath: [NSString stringWithUTF8String:filePath]
+                                        isDirectory: false];
+            [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs: @[fileURL]];
+            return S_OK;
+        }
     }
 };
 
