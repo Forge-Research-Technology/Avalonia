@@ -697,6 +697,7 @@ interface IAvaloniaNativeFactory : IUnknown
      bool AppActivate(char* bundleIdentifier);
      HRESULT CreatePlatformRenderTimer(IAvnPlatformRenderTimer** ppv);
      HRESULT HideWindow([intptr]void* nsWindow);
+     HRESULT ShowFolder(char* path);
 }
 
 [uuid(233e094f-9b9f-44a3-9a6e-6948bbdd9fb1)]
