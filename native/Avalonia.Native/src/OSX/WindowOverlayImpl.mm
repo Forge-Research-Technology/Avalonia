@@ -480,6 +480,6 @@ void WindowOverlayImpl::FixWindowPosition() {
     }
     
     if (!NSPointInRect(frame.origin, windowScreen.frame)) {
-        [this->parentWindow setFrameOrigin: frame.origin];
+        [this->parentWindow setFrameOrigin: windowScreen.frame.origin];
     }
 }
