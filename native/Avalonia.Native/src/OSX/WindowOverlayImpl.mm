@@ -17,6 +17,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
     
+    FixWindowPosition();
+    
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
@@ -461,4 +463,23 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     }
 
     return S_OK;
+}
+
+// Fix for issue #16790
+// Basically Avalonia raises an exception if the window position is outside the screen, while finding a screen for the window.
+// This function fixes that issue by moving the window inside the screen
+void WindowOverlayImpl::FixWindowPosition() {
+    NSRect frame = this->parentWindow.frame;
+    NSPoint windowMidPt = NSMakePoint(frame.origin.x + frame.size.width / 2, frame.origin.y + frame.size.height / 2);
+    NSScreen* windowScreen = [NSScreen mainScreen];
+    for ( NSScreen* screen in [NSScreen screens]) {
+        if (NSPointInRect(windowMidPt, screen.frame)) {
+            windowScreen = screen;
+            break;
+        }
+    }
+    
+    if (!NSPointInRect(frame.origin, windowScreen.frame)) {
+        [this->parentWindow setFrameOrigin: frame.origin];
+    }
 }
