@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
@@ -16,6 +17,19 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
+
+    // Add a list to store the special key codes that need to be sent to the AvnView
+     static const std::unordered_set<unsigned short> specialKeyCodes = {
+        0,   // Cmd+a (Select All)
+        6,   // Cmd+z (Undo)
+        16,  // Cmd+y (Redo)
+        9,   // Cmd+v (Paste)
+        11,  // Cmd+b (Bold)
+        34,  // Cmd+I (Italic)
+        32   // Cmd+U (Underline)
+    };
+
+
     
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
@@ -126,12 +140,9 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if (([event keyCode] == 9 || [event keyCode] == 0 || [event keyCode] == 6 || [event keyCode] == 16) &&
+            if ((specialKeyCodes.find([event keyCode]) != specialKeyCodes.end()) &&
                 ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
-                // Current special keys are: Cmd+v (keycode 9), Cmd+a (keycode 0), Cmd+z (keycode 6) 
-                // and Cmd+y (keycode 16)
-
                 // We need to treat these combinations in a special way in our local event monitor,
                 // in order to ensure they reach their intended handler. This is required because
                 // PowerPoint has its own local event monitor which stops certain events from
