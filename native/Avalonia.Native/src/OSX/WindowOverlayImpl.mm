@@ -16,9 +16,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
-    
-    FixWindowPosition();
-    
+        
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
@@ -301,31 +299,6 @@ HRESULT WindowOverlayImpl::GetScaling(double *ret) {
     }
 }
 
-HRESULT WindowOverlayImpl::GetPosition(AvnPoint *ret) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        if (ret == nullptr) {
-            return E_POINTER;
-        }
-
-        if(parentWindow != nullptr) {
-            auto frame = [parentWindow frame];
-
-            ret->X = frame.origin.x;
-            ret->Y = frame.origin.y + frame.size.height;
-
-            *ret = ConvertPointY(*ret);
-        }
-        else
-        {
-            *ret = lastPositionSet;
-        }
-
-        return S_OK;
-    }
-}
-
 HRESULT WindowOverlayImpl::PointToScreen(AvnPoint point, AvnPoint *ret) {
     START_COM_CALL;
 
@@ -463,23 +436,4 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     }
 
     return S_OK;
-}
-
-// Fix for issue #16790
-// Basically Avalonia raises an exception if the window position is outside the screen, while finding a screen for the window.
-// This function fixes that issue by moving the window inside the screen
-void WindowOverlayImpl::FixWindowPosition() {
-    NSRect frame = this->parentWindow.frame;
-    NSPoint windowMidPt = NSMakePoint(frame.origin.x + frame.size.width / 2, frame.origin.y + frame.size.height / 2);
-    NSScreen* windowScreen = [NSScreen mainScreen];
-    for ( NSScreen* screen in [NSScreen screens]) {
-        if (NSPointInRect(windowMidPt, screen.frame)) {
-            windowScreen = screen;
-            break;
-        }
-    }
-    
-    if (!NSPointInRect(frame.origin, windowScreen.frame)) {
-        [this->parentWindow setFrameOrigin: windowScreen.frame.origin];
-    }
 }
