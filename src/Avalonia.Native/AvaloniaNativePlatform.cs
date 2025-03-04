@@ -224,5 +224,10 @@ namespace Avalonia.Native
         {
             return new EmbeddableTopLevelImpl(_factory);
         }
+
+        public void ShowFolder(string filePath)
+        {
+            _factory.ShowFolder(filePath);
+        }
     }
 }
