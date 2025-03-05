@@ -14,6 +14,7 @@ private:
     NSColorPanel* colorPanel;
     bool isTrackingMouse;
     NSArray* eventMonitors;
+    bool closed;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
