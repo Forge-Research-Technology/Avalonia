@@ -28,12 +28,9 @@ WindowBaseImpl::~WindowBaseImpl() {
 
 WindowBaseImpl::WindowBaseImpl(IAvnWindowBaseEvents *events, bool usePanel, bool overlayWindow) : TopLevelImpl(events) {
     _children = std::list<WindowBaseImpl*>();
-
     _shown = false;
     _inResize = false;
     BaseEvents = events;
-    View = [[AvnView alloc] initWithParent:this];
-    StandardContainer = [[AutoFitContentView new] initWithContent:View];
 
     lastPositionSet = { 0, 0 };
     hasPosition = false;

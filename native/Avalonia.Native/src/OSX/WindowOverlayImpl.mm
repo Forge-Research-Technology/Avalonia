@@ -19,7 +19,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
 
     // Add a list to store the special key codes that need to be sent to the AvnView
-     static const std::unordered_set<unsigned short> specialKeyCodes = {
+    static const std::unordered_set<unsigned short> specialKeyCodes = {
         0,   // Cmd+a (Select All)
         6,   // Cmd+z (Undo)
         16,  // Cmd+y (Redo)
@@ -29,8 +29,6 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         32   // Cmd+U (Underline)
     };
 
-
-    
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
@@ -143,25 +141,22 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             if ((specialKeyCodes.find([event keyCode]) != specialKeyCodes.end()) &&
                 ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
-                // We need to treat these combinations in a special way in our local event monitor,
-                // in order to ensure they reach their intended handler. This is required because
-                // PowerPoint has its own local event monitor which stops certain events from
-                // reaching our AvnView in the normal chain of window events.
+                // Some key combinations need to be treated in a special way by our local event monitor.
+                // Manually treating this here prior to PowerPoint ensures those keys reach our handlers.
+                // This is required because PowerPoint's own handlers can prevent them from reaching us
+                // in the normal processing chain of events.
 
-                // If the event matches specific key codes and it was intended for our AvnView, then
-                // we can directly pass it to its intended window, skipping any other event monitors.
-                // This window can be either the Powerpoint window or a completely external avalonia
-                // window, like our data editor window is. Possible scenarios are:
+                // When the first responder is an AvnView, this means the user has recently interacted
+                // with one of our views so the event is most likely intended for us. This window can be
+                // either the Powerpoint window or a standalone Avalonia window, like our data editor.
 
-                // 1) The Powerpoint window: firstResponder is our overlay (an AvnView) whenever a
-                // grunt object was recently selected by the user.
-                // 2) An external Avalonia window: firstResponder is always an AvnView.
+                // Possible AvnView scenarios are:
+                // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
+                // 2) Standalone Avalonia window: firstResponder is always an AvnView
 
-                // First responder might be null with window minimized for example, that's also okay.
-
-                // The powerpoint local event monitor can be observed when hitting Cmd+v while in the
-                // `About PowerPoint` window, causing clipboard contents to be inserted in the slide,
-                // which is a completely separate window from the one we are in.
+                // PowerPoint's special key handlers can be observed by hitting Cmd+V inside the `About`
+                // window, which results in clipboard contents being inserted into a completely different
+                // window - the presentation window.
                 
                 NSLog(@"WOI: MONITOR Forcing keyboard event to AvnWindow");
                 [[event window] sendEvent:event];
@@ -267,10 +262,15 @@ HRESULT WindowOverlayImpl::Activate() {
 HRESULT WindowOverlayImpl::Close()
 {
     START_COM_CALL;
-    HRESULT result = WindowImpl::Close();
-    [View onClosed];
-    
-    return result;
+    if ( !closed ) {
+        closed = true;
+        HRESULT result = WindowImpl::Close();
+        [View onClosed];
+        BaseEvents->Closed();
+        return result;
+    }
+
+    return S_OK;
 }
 
 HRESULT WindowOverlayImpl::PointToClient(AvnPoint point, AvnPoint *ret) {
@@ -306,31 +306,6 @@ HRESULT WindowOverlayImpl::GetScaling(double *ret) {
         }
 
         *ret = [parentWindow backingScaleFactor];
-        return S_OK;
-    }
-}
-
-HRESULT WindowOverlayImpl::GetPosition(AvnPoint *ret) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        if (ret == nullptr) {
-            return E_POINTER;
-        }
-
-        if(parentWindow != nullptr) {
-            auto frame = [parentWindow frame];
-
-            ret->X = frame.origin.x;
-            ret->Y = frame.origin.y + frame.size.height;
-
-            *ret = ConvertPointY(*ret);
-        }
-        else
-        {
-            *ret = lastPositionSet;
-        }
-
         return S_OK;
     }
 }

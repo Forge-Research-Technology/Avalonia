@@ -14,6 +14,7 @@ private:
     NSColorPanel* colorPanel;
     bool isTrackingMouse;
     NSArray* eventMonitors;
+    bool closed;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
@@ -27,7 +28,6 @@ public:
     virtual HRESULT GetScaling(double *ret) override;
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
-    virtual HRESULT GetPosition(AvnPoint *ret) override;
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
     virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
