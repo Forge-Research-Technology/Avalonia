@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
@@ -16,7 +17,18 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
-        
+
+    // Add a list to store the special key codes that need to be sent to the AvnView
+    static const std::unordered_set<unsigned short> specialKeyCodes = {
+        0,   // Cmd+a (Select All)
+        6,   // Cmd+z (Undo)
+        16,  // Cmd+y (Redo)
+        9,   // Cmd+v (Paste)
+        11,  // Cmd+b (Bold)
+        34,  // Cmd+I (Italic)
+        32   // Cmd+U (Underline)
+    };
+
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
@@ -126,31 +138,25 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if (([event keyCode] == 9 || [event keyCode] == 0 || [event keyCode] == 6 || [event keyCode] == 16) &&
+            if ((specialKeyCodes.find([event keyCode]) != specialKeyCodes.end()) &&
                 ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
-                // Current special keys are: Cmd+v (keycode 9), Cmd+a (keycode 0), Cmd+z (keycode 6) 
-                // and Cmd+y (keycode 16)
+                // Some key combinations need to be treated in a special way by our local event monitor.
+                // Manually treating this here prior to PowerPoint ensures those keys reach our handlers.
+                // This is required because PowerPoint's own handlers can prevent them from reaching us
+                // in the normal processing chain of events.
 
-                // We need to treat these combinations in a special way in our local event monitor,
-                // in order to ensure they reach their intended handler. This is required because
-                // PowerPoint has its own local event monitor which stops certain events from
-                // reaching our AvnView in the normal chain of window events.
+                // When the first responder is an AvnView, this means the user has recently interacted
+                // with one of our views so the event is most likely intended for us. This window can be
+                // either the Powerpoint window or a standalone Avalonia window, like our data editor.
 
-                // If the event matches specific key codes and it was intended for our AvnView, then
-                // we can directly pass it to its intended window, skipping any other event monitors.
-                // This window can be either the Powerpoint window or a completely external avalonia
-                // window, like our data editor window is. Possible scenarios are:
+                // Possible AvnView scenarios are:
+                // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
+                // 2) Standalone Avalonia window: firstResponder is always an AvnView
 
-                // 1) The Powerpoint window: firstResponder is our overlay (an AvnView) whenever a
-                // grunt object was recently selected by the user.
-                // 2) An external Avalonia window: firstResponder is always an AvnView.
-
-                // First responder might be null with window minimized for example, that's also okay.
-
-                // The powerpoint local event monitor can be observed when hitting Cmd+v while in the
-                // `About PowerPoint` window, causing clipboard contents to be inserted in the slide,
-                // which is a completely separate window from the one we are in.
+                // PowerPoint's special key handlers can be observed by hitting Cmd+V inside the `About`
+                // window, which results in clipboard contents being inserted into a completely different
+                // window - the presentation window.
                 
                 NSLog(@"WOI: MONITOR Forcing keyboard event to AvnWindow");
                 [[event window] sendEvent:event];
