@@ -16,7 +16,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentWindow = (__bridge NSWindow*) parentWindow;
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
-    
+        
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
@@ -300,31 +300,6 @@ HRESULT WindowOverlayImpl::GetScaling(double *ret) {
         }
 
         *ret = [parentWindow backingScaleFactor];
-        return S_OK;
-    }
-}
-
-HRESULT WindowOverlayImpl::GetPosition(AvnPoint *ret) {
-    START_COM_CALL;
-
-    @autoreleasepool {
-        if (ret == nullptr) {
-            return E_POINTER;
-        }
-
-        if(parentWindow != nullptr) {
-            auto frame = [parentWindow frame];
-
-            ret->X = frame.origin.x;
-            ret->Y = frame.origin.y + frame.size.height;
-
-            *ret = ConvertPointY(*ret);
-        }
-        else
-        {
-            *ret = lastPositionSet;
-        }
-
         return S_OK;
     }
 }
