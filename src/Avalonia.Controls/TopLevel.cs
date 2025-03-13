@@ -259,11 +259,7 @@ namespace Avalonia.Controls
                     x => (x as InputElement)?.GetObservable(CursorProperty) ?? Observable.Empty<Cursor>())
                 .Switch().Subscribe(cursor =>
                 {
-                    if(cursor is not null)
-                    {
-                        cursor.Scale(RenderScaling);
-                    }
-
+                    cursor?.Scale(RenderScaling);
                     PlatformImpl?.SetCursor(cursor?.PlatformImpl);
                 }
             );
