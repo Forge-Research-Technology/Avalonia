@@ -1,0 +1,96 @@
+trigger: none
+
+jobs:
+
+# - job: GetPRNumber
+#   pool:
+#     vmImage: 'windows-2022'
+#   variables:
+#     SolutionDir: '$(Build.SourcesDirectory)'
+#   steps:
+#   - task: PowerShell@2
+#     displayName: Get PR Number
+#     inputs:
+#       targetType: 'inline'
+#       script: |
+#         $prId = $env:System_PullRequest_PullRequestNumber
+#         Write-Host "PR Number  is:-" $env:System_PullRequest_PullRequestNumber
+
+#         if (!([string]::IsNullOrWhiteSpace($prId)))
+#         {
+#           Set-Content -Path $env:Build_ArtifactStagingDirectory\prId.txt -Value $prId
+#         }
+      
+#   - task: PublishBuildArtifacts@1
+#     inputs:
+#       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+#       ArtifactName: 'PRNumber'
+#       publishLocation: 'Container'
+      
+
+- job: Windows
+  pool:
+    vmImage: 'windows-2022'
+  variables:
+    SolutionDir: '$(Build.SourcesDirectory)'
+  steps:
+  - task: UseDotNet@2
+    displayName: 'Use .NET Core SDK 6.0.404'
+    inputs:
+      version: 6.0.404
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET 8.0 SDK'
+    inputs:
+      packageType: sdk
+      useGlobalJson: true
+
+  - task: CmdLine@2
+    displayName: 'Install Workloads'
+    inputs:
+      script: |
+       dotnet workload install android ios wasm-tools wasm-experimental wasm-tools-net6
+
+  - task: CmdLine@2
+    displayName: 'Install Nuke'
+    inputs:
+      script: |
+       dotnet tool install --global Nuke.GlobalTool --version 6.2.1 
+
+  - task: CmdLine@2
+    displayName: 'Run Nuke'
+    inputs:
+      script: |
+        set PATH=%PATH%;%USERPROFILE%\.dotnet\tools
+        nuke --target CiAzureWindows --configuration Release
+      
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '$(Build.SourcesDirectory)/artifacts/test-results/*.trx'F
+    condition: not(canceled())
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: '$(Build.SourcesDirectory)/artifacts/nuget'
+      artifactName: 'NuGet'
+    condition: succeeded()
+
+  - task: NuGetAuthenticate@1
+    displayName: 'Authenticate with Azure Artifacts'
+
+  - task: DotNetCoreCLI@2
+    displayName: Push packages
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release'))
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Build.SourcesDirectory)/artifacts/nuget/*.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: 'Libraries/forge-libs'
+
+  # - task: PublishBuildArtifacts@1
+  #   inputs:
+  #     pathToPublish: '$(Build.SourcesDirectory)/artifacts/zip'
+  #     artifactName: 'Samples'
+  #   condition: succeeded()
+

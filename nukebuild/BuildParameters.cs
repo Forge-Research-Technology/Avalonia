@@ -36,7 +36,7 @@ public partial class Build
     {
         public string Configuration { get; }
         public bool SkipTests { get; }
-        public bool SkipPreviewer {get;}
+        public bool SkipPreviewer { get; }
         public string MasterBranch { get; }
         public string RepositoryName { get; }
         public string RepositoryBranch { get; }
@@ -83,7 +83,7 @@ public partial class Build
 
             // CONFIGURATION
 
-            RepositoryName = "https://github.com/Altua/Avalonia";
+            RepositoryName = "https://github.com/Forge-Research-Technology/Avalonia";
             MasterBranch = "refs/heads/main";
             ReleaseBranchRegex = new("^refs/heads/release/[0-9]+$");
 
@@ -119,7 +119,7 @@ public partial class Build
 
             ApiValidationBaseline = b.ApiValidationBaseline ?? propsApiCompatVersion;
             UpdateApiValidationSuppression = b.UpdateApiValidationSuppression ?? IsLocalBuild;
-            
+
             if (IsRunningOnAzure)
             {
                 if (!IsNuGetRelease)
@@ -138,7 +138,7 @@ public partial class Build
 
                 PublishTestResults = true;
             }
-            
+
             if (isPackingToLocalCache)
             {
                 IsPackingToLocalCache = true;
