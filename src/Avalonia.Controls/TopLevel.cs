@@ -254,6 +254,16 @@ namespace Avalonia.Controls
 
             ClientSize = impl.ClientSize;
 
+            this.GetObservable(PointerOverElementProperty)
+                .Select(
+                    x => (x as InputElement)?.GetObservable(CursorProperty) ?? Observable.Empty<Cursor>())
+                .Switch().Subscribe(cursor =>
+                {
+                    cursor?.Scale(RenderScaling);
+                    PlatformImpl?.SetCursor(cursor?.PlatformImpl);
+                }
+            );
+
             if (((IStyleHost)this).StylingParent is IResourceHost applicationResources)
             {
                 _resourcesChangesSubscriber = new TargetWeakEventSubscriber<TopLevel, ResourcesChangedEventArgs>(
