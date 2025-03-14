@@ -67,7 +67,7 @@ jobs:
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'VSTest'
-      testResultsFiles: '$(Build.SourcesDirectory)/artifacts/test-results/*.trx'F
+      testResultsFiles: '$(Build.SourcesDirectory)/artifacts/test-results/*.trx'
     condition: not(canceled())
 
   - task: PublishBuildArtifacts@1
